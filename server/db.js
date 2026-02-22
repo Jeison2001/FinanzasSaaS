@@ -56,6 +56,15 @@ const initDB = async () => {
         `);
 
         await db.execute(`
+            CREATE TABLE IF NOT EXISTS password_reset_tokens (
+                token TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL,
+                expires_at DATETIME NOT NULL,
+                FOREIGN KEY (user_id) REFERENCES users (id)
+            )
+        `);
+
+        await db.execute(`
             CREATE TABLE IF NOT EXISTS cron_locks (
                 id TEXT PRIMARY KEY,
                 locked_at DATETIME DEFAULT CURRENT_TIMESTAMP
