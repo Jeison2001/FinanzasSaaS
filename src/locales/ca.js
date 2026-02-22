@@ -65,11 +65,21 @@ export const translationsCa = {
     expensesByCategory: "Despeses per Categoria",
     incomeSource: "Fonts d'Ingrés",
     sixMonthTrend: "Tendència últims 6 mesos",
+    trendTitle: "Tendència Financera",
+    trendTitleFiltered: "Tendència del Període",
     addFirstTransaction: "Afegir Primera Transacció",
     recurrence: "Repetició",
     none: "Sense repetició",
     daily: "Diària",
     weekly: "Setmanal",
     monthly: "Mensual",
-    yearly: "Anual"
+    yearly: "Anual",
+    avgIncome: "Promig Ingressos",
+    avgExpense: "Promig Despeses",
+    savingsRate: "Taxa d'Estalvi",
+    month: "Mes",
+    noData: "SENSE DADES",
+    netBalance: "Balanç Net",
+    noResultsTitle: "Sense Resultats",
+    noResultsDesc: "No hi ha transaccions per al període seleccionat. Prova un rang diferent o neteja els filtres."
 };

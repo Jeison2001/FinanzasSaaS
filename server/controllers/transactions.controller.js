@@ -84,24 +84,53 @@ export const getStats = async (req, res) => {
 
 export const getReports = async (req, res) => {
     const userId = req.user.id;
+    const { month, year, startDate, endDate } = req.query;
+
     try {
-        // Gastos por categoría
+        let dateFilter = '';
+        let filterArgs = [];
+
+        // months from frontend are 0-indexed (Jan=0), SQL dates use 01–12
+        if (startDate && endDate) {
+            dateFilter = ' AND date >= ? AND date <= ?';
+            filterArgs = [startDate, endDate];
+        } else if (month !== undefined && month !== '' && year) {
+            const mm = String(Number(month) + 1).padStart(2, '0');
+            dateFilter = ' AND date >= ? AND date <= ?';
+            filterArgs = [`${year}-${mm}-01`, `${year}-${mm}-31`];
+        } else if (year) {
+            dateFilter = ' AND date >= ? AND date <= ?';
+            filterArgs = [`${year}-01-01`, `${year}-12-31`];
+        } else if (month !== undefined && month !== '') {
+            const currentYear = new Date().getFullYear();
+            const mm = String(Number(month) + 1).padStart(2, '0');
+            dateFilter = ' AND date >= ? AND date <= ?';
+            filterArgs = [`${currentYear}-${mm}-01`, `${currentYear}-${mm}-31`];
+        }
+
+        logger.info({ month, year, startDate, endDate, dateFilter, filterArgs }, '[getReports] filters applied');
+
+        const queryArgs = [userId, ...filterArgs];
+
+        // Gastos por categoría (planned + completed)
         const expensesRes = await db.execute({
-            sql: `SELECT category, SUM(amount) as total FROM transactions WHERE user_id = ? AND type = 'expense' AND status = 'completed' GROUP BY category`,
-            args: [userId]
+            sql: `SELECT category, SUM(amount) as total FROM transactions WHERE user_id = ? AND type = 'expense'${dateFilter} GROUP BY category`,
+            args: queryArgs
         });
         const expensesByCategory = {};
         expensesRes.rows.forEach(r => expensesByCategory[r.category] = parseFloat(r.total));
 
-        // Ingresos por categoría
+        // Ingresos por categoría (planned + completed)
         const incomesRes = await db.execute({
-            sql: `SELECT category, SUM(amount) as total FROM transactions WHERE user_id = ? AND type = 'income' AND status = 'completed' GROUP BY category`,
-            args: [userId]
+            sql: `SELECT category, SUM(amount) as total FROM transactions WHERE user_id = ? AND type = 'income'${dateFilter} GROUP BY category`,
+            args: queryArgs
         });
         const incomesBySource = {};
         incomesRes.rows.forEach(r => incomesBySource[r.category] = parseFloat(r.total));
 
-        // Tendencia mensual (últimos 6 meses). Group by substring YYYY-MM
+        // Tendencia mensual — same filter, LIMIT 6 only when showing all time
+        const limitClause = filterArgs.length > 0 ? '' : 'LIMIT 6';
+        const orderClause = filterArgs.length > 0 ? 'ASC' : 'DESC';
         const trendRes = await db.execute({
             sql: `
                 SELECT 
@@ -109,18 +138,23 @@ export const getReports = async (req, res) => {
                     SUM(CASE WHEN type='income' THEN amount ELSE 0 END) as incomes,
                     SUM(CASE WHEN type='expense' THEN amount ELSE 0 END) as expenses
                 FROM transactions 
-                WHERE user_id = ? AND status = 'completed'
+                WHERE user_id = ?${dateFilter}
                 GROUP BY month
-                ORDER BY month DESC
-                LIMIT 6
+                ORDER BY month ${orderClause}
+                ${limitClause}
             `,
-            args: [userId]
+            args: queryArgs
         });
-        const trendData = trendRes.rows.map(r => ({
-            name: r.month,
-            incomes: parseFloat(r.incomes),
-            expenses: parseFloat(r.expenses)
-        })).reverse(); // Orden cronológico ascendente para el chart
+
+        const trendData = trendRes.rows
+            .map(r => ({
+                name: r.month,
+                incomes: parseFloat(r.incomes),
+                expenses: parseFloat(r.expenses)
+            }));
+
+        // If we fetched DESC without filter, reverse for chronological display
+        if (!filterArgs.length) trendData.reverse();
 
         res.json({ expensesByCategory, incomesBySource, trendData });
     } catch (err) {

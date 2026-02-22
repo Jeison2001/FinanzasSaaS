@@ -62,85 +62,83 @@ const App = () => {
         t={t}
       />
 
-      <main className="max-w-6xl mx-auto p-4 md:p-6 space-y-6">
+      <main className="w-full max-w-[1400px] 2xl:max-w-[1600px] mx-auto p-4 md:p-6 space-y-6">
         <KPICards stats={stats} lang={lang} currency={currency} t={t} />
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2 space-y-4">
-            {transactions.length === 0 ? (
-              <TransactionTable
-                transactions={[]}
-                totalTransactionsCount={0}
-                setShowAddModal={setShowAddModal}
-                onEdit={handleEditClick}
-                deleteTransaction={deleteTransaction}
-                loadMore={loadMore}
-                hasMore={hasMore}
-                loading={loading}
-                lang={lang}
-                currency={currency}
-                t={t}
-              />
-            ) : (
-              <>
-                {/* Selector de vista: historial o informes */}
-                <div className="flex bg-white rounded-2xl p-1 shadow-sm border border-slate-200 w-full sm:w-fit mx-auto lg:mx-0">
-                  <button
-                    onClick={() => setActiveTab('transactions')}
-                    className={`flex-1 sm:flex-none px-6 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'transactions' ? 'bg-slate-950 text-white shadow-md' : 'text-slate-500 hover:bg-slate-50 cursor-pointer'}`}
-                  >
-                    {t('history')}
-                  </button>
-                  <button
-                    onClick={() => setActiveTab('reports')}
-                    className={`flex-1 sm:flex-none px-6 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'reports' ? 'bg-slate-950 text-white shadow-md' : 'text-slate-500 hover:bg-slate-50 cursor-pointer'}`}
-                  >
-                    {t('reports')}
-                  </button>
-                </div>
-
-                {activeTab === 'transactions' ? (
-                  <>
-                    <TransactionFilters
-                      filters={filters}
-                      setters={setters}
-                      showFilters={showFilters}
-                      setShowFilters={setShowFilters}
-                      clearAllFilters={clearAllFilters}
-                      lang={lang}
-                      t={t}
-                    />
-                    <TransactionTable
-                      transactions={filteredTransactions}
-                      totalTransactionsCount={transactions.length}
-                      setShowAddModal={setShowAddModal}
-                      onEdit={handleEditClick}
-                      deleteTransaction={deleteTransaction}
-                      loadMore={loadMore}
-                      hasMore={hasMore}
-                      loading={loading}
-                      lang={lang}
-                      currency={currency}
-                      t={t}
-                    />
-                  </>
-                ) : (
-                  <Reports refreshTrigger={refreshTrigger} lang={lang} currency={currency} t={t} />
-                )}
-              </>
-            )}
-          </div>
-
-          <Sidebar
-            stats={stats}
-            savingsGoal={savingsGoal}
-            transactions={transactions}
-            lang={lang}
-            currency={currency}
-            setShowGoalModal={setShowGoalModal}
-            t={t}
-          />
+        {/* Selector de vista: historial o informes */}
+        <div className="flex bg-white rounded-2xl p-1 shadow-sm border border-slate-200 w-full sm:w-fit mx-auto lg:mx-0">
+          <button
+            onClick={() => setActiveTab('transactions')}
+            className={`flex-1 sm:flex-none px-6 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'transactions' ? 'bg-slate-950 text-white shadow-md' : 'text-slate-500 hover:bg-slate-50 cursor-pointer'}`}
+          >
+            {t('history')}
+          </button>
+          <button
+            onClick={() => setActiveTab('reports')}
+            className={`flex-1 sm:flex-none px-6 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'reports' ? 'bg-slate-950 text-white shadow-md' : 'text-slate-500 hover:bg-slate-50 cursor-pointer'}`}
+          >
+            {t('reports')}
+          </button>
         </div>
+
+        {activeTab === 'transactions' ? (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-2 space-y-4">
+              {transactions.length === 0 ? (
+                <TransactionTable
+                  transactions={[]}
+                  totalTransactionsCount={0}
+                  setShowAddModal={setShowAddModal}
+                  onEdit={handleEditClick}
+                  deleteTransaction={deleteTransaction}
+                  loadMore={loadMore}
+                  hasMore={hasMore}
+                  loading={loading}
+                  lang={lang}
+                  currency={currency}
+                  t={t}
+                />
+              ) : (
+                <>
+                  <TransactionFilters
+                    filters={filters}
+                    setters={setters}
+                    showFilters={showFilters}
+                    setShowFilters={setShowFilters}
+                    clearAllFilters={clearAllFilters}
+                    lang={lang}
+                    t={t}
+                  />
+                  <TransactionTable
+                    transactions={filteredTransactions}
+                    totalTransactionsCount={transactions.length}
+                    setShowAddModal={setShowAddModal}
+                    onEdit={handleEditClick}
+                    deleteTransaction={deleteTransaction}
+                    loadMore={loadMore}
+                    hasMore={hasMore}
+                    loading={loading}
+                    lang={lang}
+                    currency={currency}
+                    t={t}
+                  />
+                </>
+              )}
+            </div>
+
+            <Sidebar
+              stats={stats}
+              savingsGoal={savingsGoal}
+              transactions={transactions}
+              lang={lang}
+              currency={currency}
+              setShowGoalModal={setShowGoalModal}
+              t={t}
+            />
+          </div>
+        ) : (
+          <Reports refreshTrigger={refreshTrigger} lang={lang} currency={currency} t={t} />
+        )}
       </main>
 
       {showAddModal && (

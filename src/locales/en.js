@@ -65,11 +65,21 @@ export const translationsEn = {
     expensesByCategory: "Expenses by Category",
     incomeSource: "Income Sources",
     sixMonthTrend: "Last 6 Months Trend",
+    trendTitle: "Financial Trend",
+    trendTitleFiltered: "Period Trend",
     addFirstTransaction: "Add First Transaction",
     recurrence: "Recurrence",
     none: "Does not repeat",
     daily: "Daily",
     weekly: "Weekly",
     monthly: "Monthly",
-    yearly: "Yearly"
+    yearly: "Yearly",
+    avgIncome: "Avg. Income",
+    avgExpense: "Avg. Expense",
+    savingsRate: "Savings Rate",
+    month: "Mo",
+    noData: "NO DATA",
+    netBalance: "Net Balance",
+    noResultsTitle: "No Results",
+    noResultsDesc: "No transactions found for the selected period. Try a different range or clear the filters."
 };

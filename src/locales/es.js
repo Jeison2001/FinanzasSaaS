@@ -65,11 +65,21 @@ export const translationsEs = {
     expensesByCategory: "Gastos por Categoría",
     incomeSource: "Fuentes de Ingreso",
     sixMonthTrend: "Tendencia últimos 6 meses",
+    trendTitle: "Tendencia Financiera",
+    trendTitleFiltered: "Tendencia del Período",
     addFirstTransaction: "Añadir Primera Transacción",
     recurrence: "Repetición",
     none: "Sin repetición",
     daily: "Diaria",
     weekly: "Semanal",
     monthly: "Mensual",
-    yearly: "Anual"
+    yearly: "Anual",
+    avgIncome: "Promedio Ingresos",
+    avgExpense: "Promedio Gastos",
+    savingsRate: "Tasa Ahorro",
+    month: "Mes",
+    noData: "SIN DATOS",
+    netBalance: "Balance Neto",
+    noResultsTitle: "Sin Resultados",
+    noResultsDesc: "No hay transacciones para el período seleccionado. Prueba con un rango diferente o limpia los filtros."
 };
