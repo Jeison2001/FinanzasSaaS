@@ -36,11 +36,10 @@ export const getTransactions = async (req, res) => {
     const limit = parseInt(req.query.limit, 10) || 50;
     const offset = parseInt(req.query.offset, 10) || 0;
 
-    try {
-        await processUserRecurring(userId);
-    } catch (e) {
-        logger.warn({ userId }, '[AUTO] Error procesando recurrencias');
-    }
+    // Fire-and-forget: no bloquea la respuesta. El cron diario ya cubre la mayoría de casos.
+    processUserRecurring(userId).catch(
+        err => logger.warn({ err, userId }, '[AUTO] Error procesando recurrencias')
+    );
     try {
         const txResult = await db.execute({
             sql: 'SELECT * FROM transactions WHERE user_id = ? ORDER BY date DESC LIMIT ? OFFSET ?',

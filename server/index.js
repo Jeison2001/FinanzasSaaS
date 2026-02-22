@@ -6,6 +6,7 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
+import compression from 'compression';
 import cron from 'node-cron';
 import logger from './logger.js';
 import db from './db.js';
@@ -18,6 +19,7 @@ import settingsRoutes from './routes/settings.routes.js';
 import adminRoutes from './routes/admin.routes.js';
 
 const app = express();
+app.use(compression());
 app.use(cors());
 app.use(express.json());
 

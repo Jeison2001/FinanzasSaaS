@@ -8,8 +8,6 @@ import {
     ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend
 } from 'recharts';
 import { Download, AlertCircle, X, Search } from 'lucide-react';
-import { toPng } from 'html-to-image';
-import { jsPDF } from 'jspdf';
 import { formatCurrency } from '../../utils/formatters';
 import { useReports } from '../../hooks/useReports';
 import { months, years } from '../../utils/constants';
@@ -96,6 +94,12 @@ const Reports = ({ refreshTrigger, lang, currency, t }) => {
     const downloadPDF = async () => {
         if (!reportRef.current) return;
         try {
+            // Lazy load: solo se descarga cuando el usuario pulsa el botón (~350 kB ahorrados en bundle inicial)
+            const [{ toPng }, { jsPDF }] = await Promise.all([
+                import('html-to-image'),
+                import('jspdf')
+            ]);
+
             const dataUrl = await toPng(reportRef.current, {
                 scale: 2,
                 backgroundColor: '#f8fafc',
