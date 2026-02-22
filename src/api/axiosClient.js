@@ -24,15 +24,25 @@ axiosClient.interceptors.request.use(
     (error) => Promise.reject(error)
 );
 
+// Rutas públicas que no requieren autenticación — un 401 allí es error de credenciales,
+// no de sesión, por lo que el componente lo maneja directamente.
+const PUBLIC_AUTH_ROUTES = ['/auth/login', '/auth/register', '/auth/forgot-password', '/auth/reset-password'];
+
 // Response Interceptor: Handle Global Errors (e.g. 401 Unauthorized)
 axiosClient.interceptors.response.use(
     (response) => response,
     (error) => {
         if (error.response && error.response.status === 401) {
-            // Global 401 handler: clear token and redirect/reload
-            localStorage.removeItem('token');
-            localStorage.removeItem('role');
-            window.location.href = '/';
+            const requestUrl = error.config?.url || '';
+            const isPublicRoute = PUBLIC_AUTH_ROUTES.some(route => requestUrl.includes(route));
+
+            if (!isPublicRoute) {
+                // Ruta protegida con 401 → sesión inválida (token expirado, borrado o manipulado)
+                localStorage.removeItem('token');
+                localStorage.removeItem('role');
+                window.location.href = '/';
+            }
+            // Si es ruta pública (login/register/etc.), el componente gestiona el error
         }
         return Promise.reject(error);
     }
