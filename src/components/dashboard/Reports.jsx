@@ -11,6 +11,7 @@ import {
 import { Download, AlertCircle } from 'lucide-react';
 import { toPng } from 'html-to-image';
 import { jsPDF } from 'jspdf';
+import { formatCurrency } from '../../utils/formatters';
 import { useReports } from '../../hooks/useReports';
 
 const COLORS = ['#4f46e5', '#ec4899', '#f59e0b', '#10b981', '#6366f1', '#8b5cf6', '#ef4444', '#3b82f6'];
