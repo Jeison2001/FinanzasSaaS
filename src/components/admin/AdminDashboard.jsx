@@ -9,6 +9,9 @@ import { useAuth } from '../../hooks/useAuth';
 import { LogOut, Users, Shield, LayoutDashboard } from 'lucide-react';
 import { useTranslation } from '../../locales';
 
+const API_BASE = import.meta.env.VITE_API_URL;
+if (!API_BASE) throw new Error("VITE_API_URL not defined.");
+
 const AdminDashboard = ({ lang, setLang, setForceClientView }) => {
     const { token, logout } = useAuth();
     const [users, setUsers] = useState([]);
@@ -17,7 +20,7 @@ const AdminDashboard = ({ lang, setLang, setForceClientView }) => {
     useEffect(() => {
         const fetchUsers = async () => {
             try {
-                const res = await axios.get('http://localhost:3001/api/admin/users', {
+                const res = await axios.get(`${API_BASE}/api/admin/users`, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
                 setUsers(res.data);

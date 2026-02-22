@@ -1,7 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from './useAuth';
 
-const API_URL = 'http://localhost:3001/api/transactions';
+const API_BASE = import.meta.env.VITE_API_URL;
+if (!API_BASE) {
+    throw new Error("System configuration error: VITE_API_URL not defined.");
+}
+const API_URL = `${API_BASE}/api/transactions`;
 
 /**
  * Gestiona el estado y las operaciones CRUD de transacciones.

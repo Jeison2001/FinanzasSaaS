@@ -6,6 +6,11 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import { useAuth } from '../../hooks/useAuth';
 
+const API_URL = import.meta.env.VITE_API_URL;
+if (!API_URL) {
+    throw new Error('System configuration error: VITE_API_URL not defined.');
+}
+
 const AuthCard = () => {
     const { login } = useAuth();
     const [isLogin, setIsLogin] = useState(true);
@@ -19,12 +24,6 @@ const AuthCard = () => {
 
         const endpoint = isLogin ? '/api/auth/login' : '/api/auth/register';
         const normalizedEmail = email.toLowerCase();
-        const API_URL = import.meta.env.VITE_API_URL;
-
-        if (!API_URL) {
-            setError('System configuration error: API URL not defined.');
-            return;
-        }
 
         try {
             const res = await axios.post(`${API_URL}${endpoint}`, {
