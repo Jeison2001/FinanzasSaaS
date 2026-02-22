@@ -11,6 +11,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@libsql/client": "^0.17.0",
     "@tailwindcss/vite": "^4.2.0",
     "axios": "^1.13.5",
     "bcrypt": "^6.0.0",
