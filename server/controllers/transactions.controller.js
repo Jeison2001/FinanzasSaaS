@@ -6,26 +6,41 @@ import { localToday, getNextDate } from '../utils/date.utils.js';
 export const processUserRecurring = async (userId) => {
     const today = localToday();
     try {
-        const result = await db.execute({
-            sql: `SELECT * FROM transactions WHERE user_id = ? AND status = 'planned' AND date <= ? AND recurrence != 'none' AND recurrence IS NOT NULL`,
-            args: [userId, today]
-        });
+        let hasMoreProcessable = true;
+        let protectionLoopCounter = 0; // Prevent infinite loops
 
-        const recurringDue = result.rows;
-        if (recurringDue.length === 0) return;
+        while (hasMoreProcessable && protectionLoopCounter < 50) {
+            protectionLoopCounter++;
 
-        for (const tx of recurringDue) {
-            const nextDateStr = getNextDate(tx.date, tx.recurrence);
-            await db.execute({
-                sql: `INSERT INTO transactions (id, user_id, type, category, amount, description, date, status, recurrence) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-                args: [uuidv4(), tx.user_id, tx.type, tx.category, tx.amount, tx.description, nextDateStr, 'planned', tx.recurrence]
+            // Extraemos solo transacciones planned vencidas
+            const result = await db.execute({
+                sql: `SELECT * FROM transactions WHERE user_id = ? AND status = 'planned' AND date <= ? AND recurrence != 'none' AND recurrence IS NOT NULL`,
+                args: [userId, today]
             });
-        }
 
-        await db.execute({
-            sql: `UPDATE transactions SET status = 'completed' WHERE user_id = ? AND status = 'planned' AND date <= ?`,
-            args: [userId, today]
-        });
+            const recurringDue = result.rows;
+            if (recurringDue.length === 0) {
+                hasMoreProcessable = false;
+                break;
+            }
+
+            for (const tx of recurringDue) {
+                const nextDateStr = getNextDate(tx.date, tx.recurrence);
+
+                // Creamos el hijo planned (que podría estar en el futuro, o aún en el pasado)
+                await db.execute({
+                    sql: `INSERT INTO transactions (id, user_id, type, category, amount, description, date, status, recurrence) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                    args: [uuidv4(), tx.user_id, tx.type, tx.category, tx.amount, tx.description, nextDateStr, 'planned', tx.recurrence]
+                });
+
+                // Solo marcamos COMO COMPLETA a la transacción padre que acabamos de iterar.
+                // NO a todas las <= today, para no romper la cadena del nuevo hijo si sigue en el pasado.
+                await db.execute({
+                    sql: `UPDATE transactions SET status = 'completed' WHERE id = ?`,
+                    args: [tx.id]
+                });
+            }
+        }
     } catch (err) {
         logger.error({ err }, 'Error in processUserRecurring');
     }
@@ -195,10 +210,12 @@ export const updateTransaction = async (req, res) => {
 
     try {
         const trxResult = await db.execute({
-            sql: 'SELECT id FROM transactions WHERE id = ? AND user_id = ?',
+            sql: 'SELECT * FROM transactions WHERE id = ? AND user_id = ?',
             args: [id, userId]
         });
         if (trxResult.rows.length === 0) return res.status(404).json({ error: 'Transaction not found' });
+
+        const oldTx = trxResult.rows[0];
 
         await db.execute({
             sql: `
@@ -208,6 +225,20 @@ export const updateTransaction = async (req, res) => {
             `,
             args: [type, category, amount, description, date, status, recurrence, id, userId]
         });
+
+        // Lógica de generación de siguiente recurrencia al editar.
+        // Solo se dispara si la transacción acaba de marcarse como completada (ej. se pagó manualmente)
+        // o si antes no era recurrente y ahora sí lo es (y está completada).
+        const justCompleted = oldTx.status !== 'completed' && status === 'completed';
+        const justMadeRecurring = oldTx.recurrence === 'none' && recurrence !== 'none';
+
+        if ((justCompleted || justMadeRecurring) && status === 'completed' && recurrence !== 'none') {
+            const nextDate = getNextDate(date, recurrence);
+            await db.execute({
+                sql: 'INSERT INTO transactions (id, user_id, type, category, amount, description, date, status, recurrence) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                args: [uuidv4(), userId, type, category, amount, description, nextDate, 'planned', recurrence]
+            });
+        }
 
         res.json({ id, type, category, amount, description, date, status, recurrence, is_modified: 1 });
     } catch (err) {
