@@ -7,7 +7,7 @@ import React, { useRef, useState } from 'react';
 import {
     ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend
 } from 'recharts';
-import { Download, AlertCircle, TrendingUp, TrendingDown, Wallet, X, Search } from 'lucide-react';
+import { Download, AlertCircle, X, Search } from 'lucide-react';
 import { toPng } from 'html-to-image';
 import { jsPDF } from 'jspdf';
 import { formatCurrency } from '../../utils/formatters';

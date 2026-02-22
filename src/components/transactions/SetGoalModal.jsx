@@ -6,6 +6,7 @@ const SetGoalModal = ({
     setSavingsGoal,
     setShowGoalModal,
     currency,
+    saveSettings,
     t
 }) => {
     return (
@@ -37,7 +38,7 @@ const SetGoalModal = ({
                     </div>
 
                     <button
-                        onClick={() => setShowGoalModal(false)}
+                        onClick={() => { saveSettings({ savings_goal: savingsGoal }); setShowGoalModal(false); }}
                         className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black uppercase tracking-widest py-4 rounded-2xl transition-all shadow-xl shadow-emerald-100 cursor-pointer"
                     >
                         {t('save')}

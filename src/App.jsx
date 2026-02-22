@@ -9,6 +9,7 @@ import { useFilters } from './hooks/useFilters';
 import { useStats } from './hooks/useStats';
 import { useAuth } from './hooks/useAuth';
 import { useAppStore } from './store/useAppStore';
+import { useSettings } from './hooks/useSettings';
 
 import AuthCard from './components/auth/AuthCard';
 import AdminDashboard from './components/admin/AdminDashboard';
@@ -24,6 +25,8 @@ import Reports from './components/dashboard/Reports';
 const App = () => {
   const { isAuthenticated, role } = useAuth();
   const { lang, setLang, currency, setCurrency, savingsGoal, setSavingsGoal, activeTab, setActiveTab } = useAppStore();
+
+  const { saveSettings } = useSettings(isAuthenticated);
 
   const t = useTranslation(lang);
 
@@ -59,6 +62,7 @@ const App = () => {
         setShowAddModal={() => { setTransactionToEdit(null); setShowAddModal(true); }}
         role={role}
         setForceClientView={setForceClientView}
+        saveSettings={saveSettings}
         t={t}
       />
 
@@ -158,6 +162,7 @@ const App = () => {
           setSavingsGoal={setSavingsGoal}
           setShowGoalModal={setShowGoalModal}
           currency={currency}
+          saveSettings={saveSettings}
           t={t}
         />
       )}
