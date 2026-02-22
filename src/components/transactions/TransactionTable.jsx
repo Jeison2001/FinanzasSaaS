@@ -23,6 +23,9 @@ const TransactionTable = ({
     setShowAddModal,
     onEdit,
     deleteTransaction,
+    loadMore,
+    hasMore,
+    loading,
     lang,
     currency,
     t
@@ -76,6 +79,18 @@ const TransactionTable = ({
                     <p className="px-4 py-10 text-center text-slate-400 font-medium text-sm">
                         {t('noTransactions')}
                     </p>
+                )}
+
+                {hasMore && transactions.length > 0 && (
+                    <div className="p-4 text-center">
+                        <button
+                            onClick={loadMore}
+                            disabled={loading}
+                            className="text-xs font-black uppercase tracking-widest text-slate-500 hover:text-emerald-600 transition-colors disabled:opacity-50"
+                        >
+                            {loading ? t('loading') || 'Loading...' : t('loadMore') || 'Load More'}
+                        </button>
+                    </div>
                 )}
             </div>
 
@@ -133,6 +148,20 @@ const TransactionTable = ({
                             <tr>
                                 <td colSpan="5" className="px-6 py-16 text-center text-slate-400 font-medium">
                                     {t('noTransactions')}
+                                </td>
+                            </tr>
+                        )}
+
+                        {hasMore && transactions.length > 0 && (
+                            <tr>
+                                <td colSpan="5" className="px-6 py-6 text-center">
+                                    <button
+                                        onClick={loadMore}
+                                        disabled={loading}
+                                        className="text-[10px] bg-slate-100 hover:bg-slate-200 px-4 py-2 rounded-xl font-black uppercase tracking-widest text-slate-600 transition-colors disabled:opacity-50 cursor-pointer"
+                                    >
+                                        {loading ? t('loading') || 'Loading...' : t('loadMore') || 'Load More'}
+                                    </button>
                                 </td>
                             </tr>
                         )}

@@ -1,37 +1,49 @@
-import { useMemo } from 'react';
+import { useState, useEffect } from 'react';
+import axiosClient from '../api/axiosClient';
+import { useAuth } from './useAuth';
 
 /**
- * Calcula KPIs financieros a partir del listado de transacciones.
- * - actualBalance: ingresos confirmados - gastos confirmados.
- * - plannedIncome/Expense: suma total (confirmados + pendientes).
- * - goalPercent: porcentaje del balance actual respecto al objetivo de ahorro.
+ * Obtiene los KPIs financieros globales desde el servidor.
+ * Reacciona a `refreshTrigger` (cuando se añaden/editan transacciones) y `savingsGoal`.
  */
-export const useStats = (transactions, savingsGoal) => {
-    const stats = useMemo(() => {
-        const totals = transactions.reduce((acc, curr) => {
-            let amount = parseFloat(curr.amount);
-            if (isNaN(amount)) amount = 0;
+export const useStats = (refreshTrigger, savingsGoal) => {
+    const { token } = useAuth();
+    const [stats, setStats] = useState({
+        actualIncome: 0,
+        actualExpense: 0,
+        plannedIncome: 0,
+        plannedExpense: 0,
+        actualBalance: 0,
+        plannedBalance: 0,
+        goalPercent: 0
+    });
 
-            if (curr.type === 'income') {
-                if (curr.status === 'completed') acc.actualIncome += amount;
-                acc.plannedIncome += amount;
-            } else {
-                if (curr.status === 'completed') acc.actualExpense += amount;
-                acc.plannedExpense += amount;
+    useEffect(() => {
+        if (!token) return;
+
+        const fetchStats = async () => {
+            try {
+                const res = await axiosClient.get('/transactions/stats');
+                const totals = res.data;
+                const balance = totals.actualIncome - totals.actualExpense;
+
+                // Evitamos NaN o infinitos si la meta es 0
+                const safeGoal = savingsGoal > 0 ? savingsGoal : 1;
+                const goalPercent = Math.min(Math.round((balance / safeGoal) * 100), 100);
+
+                setStats({
+                    ...totals,
+                    actualBalance: balance,
+                    plannedBalance: totals.plannedIncome - totals.plannedExpense,
+                    goalPercent: Math.max(0, goalPercent)
+                });
+            } catch (error) {
+                console.error('Failed to fetch stats:', error);
             }
-            return acc;
-        }, { actualIncome: 0, actualExpense: 0, plannedIncome: 0, plannedExpense: 0 });
-
-        const balance = totals.actualIncome - totals.actualExpense;
-        const goalPercent = Math.min(Math.round((balance / (savingsGoal || 1)) * 100), 100);
-
-        return {
-            ...totals,
-            actualBalance: balance,
-            plannedBalance: totals.plannedIncome - totals.plannedExpense,
-            goalPercent: Math.max(0, goalPercent)
         };
-    }, [transactions, savingsGoal]);
+
+        fetchStats();
+    }, [refreshTrigger, savingsGoal, token]);
 
     return stats;
 };

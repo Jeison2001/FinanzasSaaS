@@ -4,13 +4,10 @@
  * Acceso restringido a usuarios con rol 'admin'.
  */
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import axiosClient from '../../api/axiosClient';
 import { useAuth } from '../../hooks/useAuth';
 import { LogOut, Users, Shield, LayoutDashboard } from 'lucide-react';
 import { useTranslation } from '../../locales';
-
-const API_BASE = import.meta.env.VITE_API_URL;
-if (!API_BASE) throw new Error("VITE_API_URL not defined.");
 
 const AdminDashboard = ({ lang, setLang, setForceClientView }) => {
     const { token, logout } = useAuth();
@@ -20,9 +17,7 @@ const AdminDashboard = ({ lang, setLang, setForceClientView }) => {
     useEffect(() => {
         const fetchUsers = async () => {
             try {
-                const res = await axios.get(`${API_BASE}/api/admin/users`, {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
+                const res = await axiosClient.get('/admin/users');
                 setUsers(res.data);
             } catch (err) {
                 // Log de error con contexto para debugging

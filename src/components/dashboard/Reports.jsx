@@ -11,55 +11,26 @@ import {
 import { Download, AlertCircle } from 'lucide-react';
 import { toPng } from 'html-to-image';
 import { jsPDF } from 'jspdf';
-import { formatCurrency } from '../../utils/formatters';
+import { useReports } from '../../hooks/useReports';
 
 const COLORS = ['#4f46e5', '#ec4899', '#f59e0b', '#10b981', '#6366f1', '#8b5cf6', '#ef4444', '#3b82f6'];
 
-const Reports = ({ transactions, lang, currency, t }) => {
+const Reports = ({ refreshTrigger, lang, currency, t }) => {
     const reportRef = useRef(null);
+    const { reportsData, loading } = useReports(refreshTrigger);
+    const { expensesByCategory, incomesBySource, trendData } = reportsData;
 
     // Process: Expenses by Category
-    const expensesByCategory = transactions
-        .filter(tx => tx.type === 'expense' && tx.status === 'completed')
-        .reduce((acc, curr) => {
-            acc[curr.category] = (acc[curr.category] || 0) + parseFloat(curr.amount);
-            return acc;
-        }, {});
-
     const pieExpenseData = Object.keys(expensesByCategory).map(key => ({
         name: t(key),
         value: expensesByCategory[key]
     })).sort((a, b) => b.value - a.value);
 
     // Process: Income Sources
-    const incomesBySource = transactions
-        .filter(tx => tx.type === 'income' && tx.status === 'completed')
-        .reduce((acc, curr) => {
-            acc[curr.category] = (acc[curr.category] || 0) + parseFloat(curr.amount);
-            return acc;
-        }, {});
-
     const pieIncomeData = Object.keys(incomesBySource).map(key => ({
         name: t(key),
         value: incomesBySource[key]
     })).sort((a, b) => b.value - a.value);
-
-    // Process: Trend (Last 6 Months approx, we use YYYY-MM)
-    const monthlyDataMap = transactions.reduce((acc, curr) => {
-        if (curr.status !== 'completed') return acc;
-
-        const monthKey = curr.date.substring(0, 7); // "YYYY-MM"
-        if (!acc[monthKey]) acc[monthKey] = { name: monthKey, incomes: 0, expenses: 0 };
-
-        if (curr.type === 'income') acc[monthKey].incomes += parseFloat(curr.amount);
-        else acc[monthKey].expenses += parseFloat(curr.amount);
-
-        return acc;
-    }, {});
-
-    const trendData = Object.values(monthlyDataMap)
-        .sort((a, b) => a.name.localeCompare(b.name)) // Sort by date ascending
-        .slice(-6); // Only last 6 months
 
     // Formatters for chart tooltips
     const tooltipFormatter = (value) => formatCurrency(value, lang, currency);
@@ -106,7 +77,15 @@ const Reports = ({ transactions, lang, currency, t }) => {
         }
     };
 
-    if (transactions.filter(tx => tx.status === 'completed').length === 0) {
+    if (loading) {
+        return (
+            <div className="bg-white rounded-[2rem] border border-slate-200 p-8 text-center mt-4 shadow-sm flex items-center justify-center h-64">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-slate-900 mx-auto"></div>
+            </div>
+        );
+    }
+
+    if (pieExpenseData.length === 0 && pieIncomeData.length === 0) {
         return (
             <div className="bg-white rounded-[2rem] border border-slate-200 p-8 text-center mt-4 shadow-sm">
                 <AlertCircle size={40} className="text-slate-300 mx-auto mb-4" />

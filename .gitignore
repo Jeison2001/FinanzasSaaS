@@ -33,3 +33,4 @@ dist-ssr
 *.db-shm
 *.db-wal
 server/data/
+migrate.js

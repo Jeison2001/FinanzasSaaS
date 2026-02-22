@@ -8,6 +8,7 @@ import { useTransactions } from './hooks/useTransactions';
 import { useFilters } from './hooks/useFilters';
 import { useStats } from './hooks/useStats';
 import { useAuth } from './hooks/useAuth';
+import { useAppStore } from './store/useAppStore';
 
 import AuthCard from './components/auth/AuthCard';
 import AdminDashboard from './components/admin/AdminDashboard';
@@ -22,10 +23,8 @@ import Reports from './components/dashboard/Reports';
 
 const App = () => {
   const { isAuthenticated, role } = useAuth();
+  const { lang, setLang, currency, setCurrency, savingsGoal, setSavingsGoal, activeTab, setActiveTab } = useAppStore();
 
-  const [lang, setLang] = useState('es');
-  const [currency, setCurrency] = useState('EUR');
-  const [savingsGoal, setSavingsGoal] = useState(10000);
   const t = useTranslation(lang);
 
   const [transactionToEdit, setTransactionToEdit] = useState(null);
@@ -33,11 +32,10 @@ const App = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showGoalModal, setShowGoalModal] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
-  const [activeTab, setActiveTab] = useState('transactions');
 
-  const { transactions, addTransaction, deleteTransaction, editTransaction } = useTransactions();
+  const { transactions, addTransaction, deleteTransaction, editTransaction, loadMore, hasMore, loading, refreshTrigger } = useTransactions();
   const { filters, setters, filteredTransactions, clearAllFilters } = useFilters(transactions);
-  const stats = useStats(transactions, savingsGoal);
+  const stats = useStats(refreshTrigger, savingsGoal);
 
   // Abre el modal en modo edición con la transacción seleccionada
   const handleEditClick = (trx) => {
@@ -76,6 +74,9 @@ const App = () => {
                 setShowAddModal={setShowAddModal}
                 onEdit={handleEditClick}
                 deleteTransaction={deleteTransaction}
+                loadMore={loadMore}
+                hasMore={hasMore}
+                loading={loading}
                 lang={lang}
                 currency={currency}
                 t={t}
@@ -115,13 +116,16 @@ const App = () => {
                       setShowAddModal={setShowAddModal}
                       onEdit={handleEditClick}
                       deleteTransaction={deleteTransaction}
+                      loadMore={loadMore}
+                      hasMore={hasMore}
+                      loading={loading}
                       lang={lang}
                       currency={currency}
                       t={t}
                     />
                   </>
                 ) : (
-                  <Reports transactions={transactions} lang={lang} currency={currency} t={t} />
+                  <Reports refreshTrigger={refreshTrigger} lang={lang} currency={currency} t={t} />
                 )}
               </>
             )}

@@ -55,6 +55,13 @@ const initDB = async () => {
             )
         `);
 
+        await db.execute(`
+            CREATE TABLE IF NOT EXISTS cron_locks (
+                id TEXT PRIMARY KEY,
+                locked_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+
         console.log("Database schema initialized gracefully.");
     } catch (error) {
         console.error("Error initializing DB schema:", error);

@@ -3,13 +3,8 @@
  * Gestiona el Login y Registro de usuarios y administradores.
  */
 import React, { useState } from 'react';
-import axios from 'axios';
+import axiosClient from '../../api/axiosClient';
 import { useAuth } from '../../hooks/useAuth';
-
-const API_URL = import.meta.env.VITE_API_URL;
-if (!API_URL) {
-    throw new Error('System configuration error: VITE_API_URL not defined.');
-}
 
 const AuthCard = () => {
     const { login } = useAuth();
@@ -22,11 +17,11 @@ const AuthCard = () => {
         e.preventDefault();
         setError('');
 
-        const endpoint = isLogin ? '/api/auth/login' : '/api/auth/register';
+        const endpoint = isLogin ? '/auth/login' : '/auth/register';
         const normalizedEmail = email.toLowerCase();
 
         try {
-            const res = await axios.post(`${API_URL}${endpoint}`, {
+            const res = await axiosClient.post(endpoint, {
                 email: normalizedEmail,
                 password,
                 role: 'client' // Solo se permite registrar clientes desde el front
