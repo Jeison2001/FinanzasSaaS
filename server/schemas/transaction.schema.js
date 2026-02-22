@@ -3,11 +3,11 @@ import { z } from 'zod';
 export const addTransactionSchema = z.object({
     type: z.enum(['income', 'expense']),
     category: z.string().min(1, 'Category is required'),
-    amount: z.number().positive('Amount must be greater than 0'),
-    description: z.string().optional(),
+    amount: z.coerce.number().positive('Amount must be greater than 0'),
+    description: z.string().min(1, 'Description is required'),
     date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format'),
     status: z.enum(['planned', 'completed']),
-    recurrence: z.enum(['none', 'daily', 'weekly', 'monthly', 'yearly']).optional().default('none')
+    recurrence: z.enum(['none', 'daily', 'weekly', 'monthly', 'yearly']).default('none')
 });
 
 export const updateTransactionSchema = addTransactionSchema.partial().extend({
