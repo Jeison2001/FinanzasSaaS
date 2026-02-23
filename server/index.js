@@ -13,6 +13,8 @@ import db from './db.js';
 import { v4 as uuidv4 } from 'uuid';
 import { localToday, getNextDate } from './utils/date.utils.js';
 
+import { startJobWorker } from './services/jobWorker.service.js';
+
 import authRoutes from './routes/auth.routes.js';
 import transactionRoutes from './routes/transactions.routes.js';
 import settingsRoutes from './routes/settings.routes.js';
@@ -35,32 +37,44 @@ app.use('/api/admin', adminRoutes);
 
 const processAllRecurring = async () => {
     const today = localToday();
+    let totalGenerated = 0;
     try {
-        const result = await db.execute({
-            sql: `SELECT * FROM transactions WHERE status = 'planned' AND date <= ? AND recurrence != 'none' AND recurrence IS NOT NULL`,
-            args: [today]
-        });
+        let hasMoreProcessable = true;
+        let protectionLoopCounter = 0;
 
-        const recurringDue = result.rows;
-        if (recurringDue.length === 0) return { changes: 0, recursions: 0 };
+        while (hasMoreProcessable && protectionLoopCounter < 50) {
+            protectionLoopCounter++;
 
-        for (const tx of recurringDue) {
-            const nextDateStr = getNextDate(tx.date, tx.recurrence);
-            await db.execute({
-                sql: `INSERT INTO transactions (id, user_id, type, category, amount, description, date, status, recurrence) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-                args: [uuidv4(), tx.user_id, tx.type, tx.category, tx.amount, tx.description, nextDateStr, 'planned', tx.recurrence]
+            const result = await db.execute({
+                sql: `SELECT * FROM transactions WHERE status = 'planned' AND date <= ? AND recurrence != 'none' AND recurrence IS NOT NULL`,
+                args: [today]
             });
+
+            const recurringDue = result.rows;
+            if (recurringDue.length === 0) {
+                hasMoreProcessable = false;
+                break;
+            }
+
+            for (const tx of recurringDue) {
+                const nextDateStr = getNextDate(tx.date, tx.recurrence);
+                await db.execute({
+                    sql: `INSERT INTO transactions (id, user_id, type, category, amount, description, date, status, recurrence) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                    args: [uuidv4(), tx.user_id, tx.type, tx.category, tx.amount, tx.description, nextDateStr, 'planned', tx.recurrence]
+                });
+
+                await db.execute({
+                    sql: `UPDATE transactions SET status = 'completed' WHERE id = ?`,
+                    args: [tx.id]
+                });
+                totalGenerated++;
+            }
         }
 
-        const updateResult = await db.execute({
-            sql: `UPDATE transactions SET status = 'completed' WHERE status = 'planned' AND date <= ?`,
-            args: [today]
-        });
-
-        return { changes: updateResult.rowsAffected, recursions: recurringDue.length };
+        return { recursions: totalGenerated };
     } catch (err) {
         logger.error({ err }, 'Error in processAllRecurring');
-        return { changes: 0, recursions: 0 };
+        return { recursions: 0 };
     }
 };
 
@@ -80,7 +94,7 @@ cron.schedule('0 0 * * *', async () => {
 
         logger.info('[CRON] Procesando recurrencias de todos los usuarios...');
         const r = await processAllRecurring();
-        logger.info({ changes: r.changes, created: r.recursions }, '[CRON] Completado');
+        logger.info({ created: r.recursions }, '[CRON] Completado');
     } catch (err) {
         logger.error({ err }, '[CRON] Error');
     }
@@ -96,4 +110,5 @@ if (!PORT) {
 
 app.listen(PORT, () => {
     logger.info(`FinanzasSaaS API escuchando en el puerto ${PORT}`);
+    startJobWorker();
 });

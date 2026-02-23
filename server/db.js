@@ -71,6 +71,19 @@ const initDB = async () => {
             )
         `);
 
+        // Tabla para el Sistema de Trabajos en Segundo Plano (Queue)
+        await db.execute(`
+            CREATE TABLE IF NOT EXISTS background_jobs (
+                id TEXT PRIMARY KEY,
+                type TEXT NOT NULL,
+                payload TEXT NOT NULL,
+                status TEXT DEFAULT 'pending',
+                attempts INTEGER DEFAULT 0,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                locked_until DATETIME
+            )
+        `);
+
         console.log("Database schema initialized gracefully.");
     } catch (error) {
         console.error("Error initializing DB schema:", error);

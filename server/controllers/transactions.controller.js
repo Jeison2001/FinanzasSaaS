@@ -51,10 +51,13 @@ export const getTransactions = async (req, res) => {
     const limit = parseInt(req.query.limit, 10) || 50;
     const offset = parseInt(req.query.offset, 10) || 0;
 
-    // Fire-and-forget: no bloquea la respuesta. El cron diario ya cubre la mayoría de casos.
-    processUserRecurring(userId).catch(
-        err => logger.warn({ err, userId }, '[AUTO] Error procesando recurrencias')
-    );
+    // PRODUCTOR: Encolar trabajo de forma asíncrona en la DB
+    // En vez de congelar la CPU corriendo el catch-up, le dejamos una nota al Worker.
+    db.execute({
+        sql: `INSERT INTO background_jobs (id, type, payload) VALUES (?, ?, ?)`,
+        args: [uuidv4(), 'PROCESS_RECURRING', JSON.stringify({ userId })]
+    }).catch(err => logger.error({ err }, '[AUTO] Error encolando job de recurrencia'));
+
     try {
         const txResult = await db.execute({
             sql: 'SELECT * FROM transactions WHERE user_id = ? ORDER BY date DESC LIMIT ? OFFSET ?',
