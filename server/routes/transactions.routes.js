@@ -11,6 +11,7 @@ router.use(authenticateToken);
 router.get('/stats', getStats);
 router.get('/reports', getReports);
 router.get('/', getTransactions);
+
 router.post('/', validate(addTransactionSchema), createTransaction);
 router.put('/:id', validate(updateTransactionSchema), updateTransaction);
 router.delete('/:id', deleteTransaction);

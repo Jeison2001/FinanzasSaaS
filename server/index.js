@@ -19,6 +19,8 @@ import authRoutes from './routes/auth.routes.js';
 import transactionRoutes from './routes/transactions.routes.js';
 import settingsRoutes from './routes/settings.routes.js';
 import adminRoutes from './routes/admin.routes.js';
+import notificationRoutes from './routes/notifications.routes.js';
+
 
 const app = express();
 app.use(compression());
@@ -30,6 +32,8 @@ app.use('/api/auth', authRoutes);
 app.use('/api/transactions', transactionRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/notifications', notificationRoutes);
+
 
 // ─────────────────────────────────────────────────
 // CRON
@@ -95,6 +99,7 @@ cron.schedule('0 0 * * *', async () => {
         logger.info('[CRON] Procesando recurrencias de todos los usuarios...');
         const r = await processAllRecurring();
         logger.info({ created: r.recursions }, '[CRON] Completado');
+
     } catch (err) {
         logger.error({ err }, '[CRON] Error');
     }

@@ -64,7 +64,8 @@ export const translationsCa = {
     emptyStateDesc: "Encara no has registrat cap transacció. Prem el botó superior per a afegir el teu primer ingrés o despesa i pren el control.",
     expensesByCategory: "Despeses per Categoria",
     incomeSource: "Fonts d'Ingrés",
-    sixMonthTrend: "Tendència últims 6 mesos",
+    sixMonthTrend: "Tendència Anual",
+
     trendTitle: "Tendència Financera",
     trendTitleFiltered: "Tendència del Període",
     addFirstTransaction: "Afegir Primera Transacció",
@@ -81,5 +82,8 @@ export const translationsCa = {
     noData: "SENSE DADES",
     netBalance: "Balanç Net",
     noResultsTitle: "Sense Resultats",
-    noResultsDesc: "No hi ha transaccions per al període seleccionat. Prova un rang diferent o neteja els filtres."
+    noResultsDesc: "No hi ha transaccions per al període seleccionat. Prova un rang diferent o neteja els filtres.",
+    action_dismiss: "Descartar"
 };
+
+

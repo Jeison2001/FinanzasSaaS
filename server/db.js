@@ -28,6 +28,23 @@ const initDB = async () => {
             )
         `);
 
+        // Migration for existing databases: Subscription cleanup
+        // Note: SQLite does not support DROP COLUMN in older versions easily, 
+        // but for modern LibSQL we can just leave the schema clean for new users.
+
+        await db.execute(`
+            CREATE TABLE IF NOT EXISTS user_notifications (
+                id TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL,
+                type TEXT NOT NULL,
+                message_key TEXT NOT NULL,
+                is_read INTEGER DEFAULT 0,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users (id)
+            )
+        `);
+
+
         await db.execute(`
             CREATE TABLE IF NOT EXISTS transactions (
                 id TEXT PRIMARY KEY,

@@ -145,8 +145,8 @@ export const getReports = async (req, res) => {
         const incomesBySource = {};
         incomesRes.rows.forEach(r => incomesBySource[r.category] = parseFloat(r.total));
 
-        // Tendencia mensual — same filter, LIMIT 6 only when showing all time
-        const limitClause = filterArgs.length > 0 ? '' : 'LIMIT 6';
+        // Tendencia mensual — same filter, LIMIT 12 to show more history
+        const limitClause = filterArgs.length > 0 ? '' : 'LIMIT 12';
         const orderClause = filterArgs.length > 0 ? 'ASC' : 'DESC';
         const trendRes = await db.execute({
             sql: `
@@ -162,6 +162,7 @@ export const getReports = async (req, res) => {
             `,
             args: queryArgs
         });
+
 
         const trendData = trendRes.rows
             .map(r => ({

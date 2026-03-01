@@ -47,3 +47,4 @@ export const useStats = (refreshTrigger, savingsGoal) => {
 
     return stats;
 };
+

@@ -64,7 +64,8 @@ export const translationsEs = {
     emptyStateDesc: "No has registrado ninguna transacción aún. Pulsa el botón superior para añadir tu primer ingreso o gasto y empieza a tomar el control.",
     expensesByCategory: "Gastos por Categoría",
     incomeSource: "Fuentes de Ingreso",
-    sixMonthTrend: "Tendencia últimos 6 meses",
+    sixMonthTrend: "Tendencia Anual",
+
     trendTitle: "Tendencia Financiera",
     trendTitleFiltered: "Tendencia del Período",
     addFirstTransaction: "Añadir Primera Transacción",
@@ -81,5 +82,8 @@ export const translationsEs = {
     noData: "SIN DATOS",
     netBalance: "Balance Neto",
     noResultsTitle: "Sin Resultados",
-    noResultsDesc: "No hay transacciones para el período seleccionado. Prueba con un rango diferente o limpia los filtros."
+    noResultsDesc: "No hay transacciones para el período seleccionado. Prueba con un rango diferente o limpia los filtros.",
+    action_dismiss: "Descartar"
 };
+
+

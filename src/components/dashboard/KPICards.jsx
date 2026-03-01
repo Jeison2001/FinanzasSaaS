@@ -9,6 +9,7 @@ const KPICards = ({ stats, lang, currency, t }) => {
     return (
         <section className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-6">
             <div className="bg-white p-3 md:p-5 rounded-2xl md:rounded-3xl shadow-sm border border-slate-200 hover:shadow-md transition-shadow">
+
                 <div className="flex justify-between items-start mb-1 md:mb-2">
                     <div className="p-1.5 md:p-2 bg-slate-950 text-white rounded-lg">
                         <Wallet size={14} className="md:hidden" />

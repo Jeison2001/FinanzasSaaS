@@ -147,6 +147,7 @@ const Reports = ({ refreshTrigger, lang, currency, t }) => {
         );
     }
 
+
     const filtersActive = !!(appliedFilters.month !== '' || appliedFilters.year || appliedFilters.start || appliedFilters.end);
     const hasData = pieExpenseData.length > 0 || pieIncomeData.length > 0 || trendData.length > 0;
 

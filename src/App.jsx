@@ -10,10 +10,12 @@ import { useStats } from './hooks/useStats';
 import { useAuth } from './hooks/useAuth';
 import { useAppStore } from './store/useAppStore';
 import { useSettings } from './hooks/useSettings';
+import { useNotifications } from './hooks/useNotifications';
 
 import AuthCard from './components/auth/AuthCard';
 import AdminDashboard from './components/admin/AdminDashboard';
 import Header from './components/layout/Header';
+import NotificationBanner from './components/layout/NotificationBanner';
 import KPICards from './components/dashboard/KPICards';
 import Sidebar from './components/dashboard/Sidebar';
 import TransactionFilters from './components/transactions/TransactionFilters';
@@ -37,6 +39,7 @@ const App = () => {
   const [showFilters, setShowFilters] = useState(false);
 
   const { transactions, addTransaction, deleteTransaction, editTransaction, loadMore, hasMore, loading, refreshTrigger } = useTransactions();
+  const { notifications, dismissNotification } = useNotifications();
   const { filters, setters, filteredTransactions, clearAllFilters } = useFilters(transactions);
   const stats = useStats(refreshTrigger, savingsGoal);
 
@@ -64,6 +67,12 @@ const App = () => {
         setForceClientView={setForceClientView}
         saveSettings={saveSettings}
         t={t}
+      />
+
+      <NotificationBanner 
+        notifications={notifications} 
+        onDismiss={dismissNotification} 
+        t={t} 
       />
 
       <main className="w-full max-w-[1400px] 2xl:max-w-[1600px] mx-auto p-4 md:p-6 space-y-6">
