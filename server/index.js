@@ -28,11 +28,24 @@ app.use(compression());
 // Configuración segura de CORS
 const allowedOrigins = process.env.ALLOWED_ORIGINS 
     ? process.env.ALLOWED_ORIGINS.split(',') 
-    : ['http://localhost:5173', 'http://127.0.0.1:5173'];
+    : [
+        'http://localhost:5173', 
+        'http://127.0.0.1:5173', 
+        'https://finanzas-saas-three.vercel.app'
+      ];
 
 app.use(cors({
     origin: (origin, callback) => {
-        if (!origin || allowedOrigins.includes(origin)) {
+        if (!origin) {
+            return callback(null, true);
+        }
+        
+        const isAllowed = allowedOrigins.includes(origin) || 
+                          origin.endsWith('.vercel.app') || 
+                          origin.startsWith('http://localhost:') || 
+                          origin.startsWith('http://127.0.0.1:');
+                          
+        if (isAllowed) {
             callback(null, true);
         } else {
             callback(new Error('Bloqueado por política CORS de FinanzasSaaS'));
@@ -40,6 +53,7 @@ app.use(cors({
     },
     credentials: true
 }));
+
 
 app.use(express.json());
 
