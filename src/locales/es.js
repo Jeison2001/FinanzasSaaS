@@ -83,7 +83,10 @@ export const translationsEs = {
     netBalance: "Balance Neto",
     noResultsTitle: "Sin Resultados",
     noResultsDesc: "No hay transacciones para el período seleccionado. Prueba con un rango diferente o limpia los filtros.",
-    action_dismiss: "Descartar"
+    action_dismiss: "Descartar",
+    notif_recurring_processed: "Se han procesado tus transacciones planificadas pendientes.",
+    role: "Rol",
+    resetData: "Limpiar Datos",
+    resetConfirm: "¿Estás seguro de que deseas limpiar toda la información de este usuario? Esta acción es irreversible y eliminará todas sus transacciones y notificaciones.",
+    dataResetSuccess: "Información del usuario reseteada con éxito."
 };
-
-

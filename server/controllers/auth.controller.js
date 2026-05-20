@@ -10,7 +10,7 @@ dotenv.config();
 const SECRET_KEY = process.env.JWT_SECRET;
 
 export const register = async (req, res) => {
-    const { email, password, role } = req.body;
+    const { email, password } = req.body;
     const normalizedEmail = email.toLowerCase();
 
     try {
@@ -23,7 +23,7 @@ export const register = async (req, res) => {
 
         const hashedPassword = await bcrypt.hash(password, 10);
         const id = uuidv4();
-        const userRole = role === 'admin' ? 'admin' : 'client';
+        const userRole = 'client'; // Forzar rol de cliente en registro público para evitar escalada
 
         await db.execute({
             sql: 'INSERT INTO users (id, email, password_hash, role) VALUES (?, ?, ?, ?)',
@@ -54,10 +54,15 @@ export const login = async (req, res) => {
         });
 
         const user = userResult.rows[0];
-        if (!user) return res.status(404).json({ error: 'User not found' });
 
-        const valid = await bcrypt.compare(password, user.password_hash);
-        if (!valid) return res.status(401).json({ error: 'Invalid password' });
+        // Mitigar ataques de temporización ejecutando bcrypt.compare con un hash ficticio si el usuario no existe
+        const dummyHash = '$2b$10$L247j6c9H5x8WzZ7y3NqUe5J.S9k7b/T1d6M3n4R5P7Q8u9V0W1x2';
+        const passwordHash = user ? user.password_hash : dummyHash;
+        const valid = await bcrypt.compare(password, passwordHash);
+
+        if (!user || !valid) {
+            return res.status(401).json({ error: 'Email o contraseña incorrectos.' });
+        }
 
         await db.execute({
             sql: 'UPDATE users SET last_login_at = CURRENT_TIMESTAMP WHERE id = ?',
@@ -71,3 +76,4 @@ export const login = async (req, res) => {
         res.status(500).json({ error: 'Login failed' });
     }
 };
+

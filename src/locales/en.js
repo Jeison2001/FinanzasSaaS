@@ -83,7 +83,10 @@ export const translationsEn = {
     netBalance: "Net Balance",
     noResultsTitle: "No Results",
     noResultsDesc: "No transactions found for the selected period. Try a different range or clear the filters.",
-    action_dismiss: "Dismiss"
+    action_dismiss: "Dismiss",
+    notif_recurring_processed: "Your pending planned transactions have been processed.",
+    role: "Role",
+    resetData: "Clear Data",
+    resetConfirm: "Are you sure you want to clear all information for this user? This action is irreversible and will delete all their transactions and notifications.",
+    dataResetSuccess: "User data successfully reset."
 };
-
-

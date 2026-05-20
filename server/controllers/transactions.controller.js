@@ -1,62 +1,31 @@
 import { v4 as uuidv4 } from 'uuid';
 import db from '../db.js';
 import logger from '../logger.js';
-import { localToday, getNextDate } from '../utils/date.utils.js';
+import { generateNextRecurrence, processRecurringTransactions } from '../services/recurrence.service.js';
 
-export const processUserRecurring = async (userId) => {
-    const today = localToday();
-    try {
-        let hasMoreProcessable = true;
-        let protectionLoopCounter = 0; // Prevent infinite loops
-
-        while (hasMoreProcessable && protectionLoopCounter < 50) {
-            protectionLoopCounter++;
-
-            // Extraemos solo transacciones planned vencidas
-            const result = await db.execute({
-                sql: `SELECT * FROM transactions WHERE user_id = ? AND status = 'planned' AND date <= ? AND recurrence != 'none' AND recurrence IS NOT NULL`,
-                args: [userId, today]
-            });
-
-            const recurringDue = result.rows;
-            if (recurringDue.length === 0) {
-                hasMoreProcessable = false;
-                break;
-            }
-
-            for (const tx of recurringDue) {
-                const nextDateStr = getNextDate(tx.date, tx.recurrence);
-
-                // Creamos el hijo planned (que podría estar en el futuro, o aún en el pasado)
-                await db.execute({
-                    sql: `INSERT INTO transactions (id, user_id, type, category, amount, description, date, status, recurrence) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-                    args: [uuidv4(), tx.user_id, tx.type, tx.category, tx.amount, tx.description, nextDateStr, 'planned', tx.recurrence]
-                });
-
-                // Solo marcamos COMO COMPLETA a la transacción padre que acabamos de iterar.
-                // NO a todas las <= today, para no romper la cadena del nuevo hijo si sigue en el pasado.
-                await db.execute({
-                    sql: `UPDATE transactions SET status = 'completed' WHERE id = ?`,
-                    args: [tx.id]
-                });
-            }
-        }
-    } catch (err) {
-        logger.error({ err }, 'Error in processUserRecurring');
-    }
-};
+export { processRecurringTransactions as processUserRecurring };
 
 export const getTransactions = async (req, res) => {
     const userId = req.user.id;
     const limit = parseInt(req.query.limit, 10) || 50;
     const offset = parseInt(req.query.offset, 10) || 0;
 
-    // PRODUCTOR: Encolar trabajo de forma asíncrona en la DB
-    // En vez de congelar la CPU corriendo el catch-up, le dejamos una nota al Worker.
-    db.execute({
-        sql: `INSERT INTO background_jobs (id, type, payload) VALUES (?, ?, ?)`,
-        args: [uuidv4(), 'PROCESS_RECURRING', JSON.stringify({ userId })]
-    }).catch(err => logger.error({ err }, '[AUTO] Error encolando job de recurrencia'));
+    // Solo encolar un job si no hay otro pendiente/procesando para este usuario
+    const jobPayload = JSON.stringify({ userId });
+    try {
+        const existing = await db.execute({
+            sql: `SELECT id FROM background_jobs WHERE type = 'PROCESS_RECURRING' AND payload = ? AND status IN ('pending', 'processing')`,
+            args: [jobPayload]
+        });
+        if (existing.rows.length === 0) {
+            db.execute({
+                sql: `INSERT INTO background_jobs (id, type, payload) VALUES (?, ?, ?)`,
+                args: [uuidv4(), 'PROCESS_RECURRING', jobPayload]
+            }).catch(err => logger.error({ err }, '[AUTO] Error encolando job de recurrencia'));
+        }
+    } catch (err) {
+        logger.error({ err }, '[AUTO] Error verificando job existente');
+    }
 
     try {
         const txResult = await db.execute({
@@ -72,15 +41,14 @@ export const getTransactions = async (req, res) => {
 export const getStats = async (req, res) => {
     const userId = req.user.id;
     try {
-        // Ejecutamos agregaciones en la base de datos para no enviar todos los registros por red
         const statsResult = await db.execute({
             sql: `
-                SELECT 
+                SELECT
                     SUM(CASE WHEN type = 'income' AND status = 'completed' THEN amount ELSE 0 END) as actualIncome,
                     SUM(CASE WHEN type = 'expense' AND status = 'completed' THEN amount ELSE 0 END) as actualExpense,
                     SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END) as plannedIncome,
                     SUM(CASE WHEN type = 'expense' THEN amount ELSE 0 END) as plannedExpense
-                FROM transactions 
+                FROM transactions
                 WHERE user_id = ?
             `,
             args: [userId]
@@ -129,7 +97,6 @@ export const getReports = async (req, res) => {
 
         const queryArgs = [userId, ...filterArgs];
 
-        // Gastos por categoría (planned + completed)
         const expensesRes = await db.execute({
             sql: `SELECT category, SUM(amount) as total FROM transactions WHERE user_id = ? AND type = 'expense'${dateFilter} GROUP BY category`,
             args: queryArgs
@@ -137,7 +104,6 @@ export const getReports = async (req, res) => {
         const expensesByCategory = {};
         expensesRes.rows.forEach(r => expensesByCategory[r.category] = parseFloat(r.total));
 
-        // Ingresos por categoría (planned + completed)
         const incomesRes = await db.execute({
             sql: `SELECT category, SUM(amount) as total FROM transactions WHERE user_id = ? AND type = 'income'${dateFilter} GROUP BY category`,
             args: queryArgs
@@ -145,16 +111,15 @@ export const getReports = async (req, res) => {
         const incomesBySource = {};
         incomesRes.rows.forEach(r => incomesBySource[r.category] = parseFloat(r.total));
 
-        // Tendencia mensual — same filter, LIMIT 12 to show more history
         const limitClause = filterArgs.length > 0 ? '' : 'LIMIT 12';
         const orderClause = filterArgs.length > 0 ? 'ASC' : 'DESC';
         const trendRes = await db.execute({
             sql: `
-                SELECT 
-                    substr(date, 1, 7) as month, 
+                SELECT
+                    substr(date, 1, 7) as month,
                     SUM(CASE WHEN type='income' THEN amount ELSE 0 END) as incomes,
                     SUM(CASE WHEN type='expense' THEN amount ELSE 0 END) as expenses
-                FROM transactions 
+                FROM transactions
                 WHERE user_id = ?${dateFilter}
                 GROUP BY month
                 ORDER BY month ${orderClause}
@@ -163,7 +128,6 @@ export const getReports = async (req, res) => {
             args: queryArgs
         });
 
-
         const trendData = trendRes.rows
             .map(r => ({
                 name: r.month,
@@ -171,7 +135,6 @@ export const getReports = async (req, res) => {
                 expenses: parseFloat(r.expenses)
             }));
 
-        // If we fetched DESC without filter, reverse for chronological display
         if (!filterArgs.length) trendData.reverse();
 
         res.json({ expensesByCategory, incomesBySource, trendData });
@@ -193,10 +156,10 @@ export const createTransaction = async (req, res) => {
         });
 
         if (recurrence && recurrence !== 'none' && status === 'completed') {
-            const nextDate = getNextDate(date, recurrence);
-            await db.execute({
-                sql: 'INSERT INTO transactions (id, user_id, type, category, amount, description, date, status, recurrence) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-                args: [uuidv4(), userId, type, category, amount, description, nextDate, 'planned', recurrence]
+            await generateNextRecurrence({
+                date, recurrence,
+                user_id: userId,
+                type, category, amount, description
             });
         }
 
@@ -210,7 +173,7 @@ export const createTransaction = async (req, res) => {
 export const updateTransaction = async (req, res) => {
     const userId = req.user.id;
     const { id } = req.params;
-    const { type, category, amount, description, date, status, recurrence = 'none' } = req.body;
+    const { type, category, amount, description, date, status, recurrence } = req.body;
 
     try {
         const trxResult = await db.execute({
@@ -221,34 +184,55 @@ export const updateTransaction = async (req, res) => {
 
         const oldTx = trxResult.rows[0];
 
+        // Fusionar los valores del payload con los existentes para soportar actualizaciones parciales sin sobreescribir con NULL
+        const updatedType = type !== undefined ? type : oldTx.type;
+        const updatedCategory = category !== undefined ? category : oldTx.category;
+        const updatedAmount = amount !== undefined ? amount : oldTx.amount;
+        const updatedDescription = description !== undefined ? description : oldTx.description;
+        const updatedDate = date !== undefined ? date : oldTx.date;
+        const updatedStatus = status !== undefined ? status : oldTx.status;
+        const updatedRecurrence = recurrence !== undefined ? recurrence : oldTx.recurrence;
+
         await db.execute({
             sql: `
-                UPDATE transactions 
+                UPDATE transactions
                 SET type = ?, category = ?, amount = ?, description = ?, date = ?, status = ?, recurrence = ?, is_modified = 1
                 WHERE id = ? AND user_id = ?
             `,
-            args: [type, category, amount, description, date, status, recurrence, id, userId]
+            args: [updatedType, updatedCategory, updatedAmount, updatedDescription, updatedDate, updatedStatus, updatedRecurrence, id, userId]
         });
 
-        // Lógica de generación de siguiente recurrencia al editar.
-        // Solo se dispara si la transacción acaba de marcarse como completada (ej. se pagó manualmente)
-        // o si antes no era recurrente y ahora sí lo es (y está completada).
-        const justCompleted = oldTx.status !== 'completed' && status === 'completed';
-        const justMadeRecurring = oldTx.recurrence === 'none' && recurrence !== 'none';
+        const justCompleted = oldTx.status !== 'completed' && updatedStatus === 'completed';
+        const justMadeRecurring = oldTx.recurrence === 'none' && updatedRecurrence !== 'none';
 
-        if ((justCompleted || justMadeRecurring) && status === 'completed' && recurrence !== 'none') {
-            const nextDate = getNextDate(date, recurrence);
-            await db.execute({
-                sql: 'INSERT INTO transactions (id, user_id, type, category, amount, description, date, status, recurrence) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-                args: [uuidv4(), userId, type, category, amount, description, nextDate, 'planned', recurrence]
+        if ((justCompleted || justMadeRecurring) && updatedStatus === 'completed' && updatedRecurrence !== 'none') {
+            await generateNextRecurrence({
+                date: updatedDate,
+                recurrence: updatedRecurrence,
+                user_id: userId,
+                type: updatedType,
+                category: updatedCategory,
+                amount: updatedAmount,
+                description: updatedDescription
             });
         }
 
-        res.json({ id, type, category, amount, description, date, status, recurrence, is_modified: 1 });
+        res.json({ 
+            id, 
+            type: updatedType, 
+            category: updatedCategory, 
+            amount: updatedAmount, 
+            description: updatedDescription, 
+            date: updatedDate, 
+            status: updatedStatus, 
+            recurrence: updatedRecurrence, 
+            is_modified: 1 
+        });
     } catch (err) {
         res.status(500).json({ error: 'Failed to update transaction' });
     }
 };
+
 
 export const deleteTransaction = async (req, res) => {
     const userId = req.user.id;

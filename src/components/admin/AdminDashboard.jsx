@@ -6,7 +6,7 @@
 import React, { useState, useEffect } from 'react';
 import axiosClient from '../../api/axiosClient';
 import { useAuth } from '../../hooks/useAuth';
-import { LogOut, Users, Shield, LayoutDashboard } from 'lucide-react';
+import { LogOut, Users, Shield, LayoutDashboard, RefreshCw } from 'lucide-react';
 import { useTranslation } from '../../locales';
 
 const AdminDashboard = ({ lang, setLang, setForceClientView }) => {
@@ -14,18 +14,32 @@ const AdminDashboard = ({ lang, setLang, setForceClientView }) => {
     const [users, setUsers] = useState([]);
     const t = useTranslation(lang);
 
+    const fetchUsers = async () => {
+        try {
+            const res = await axiosClient.get('/admin/users');
+            setUsers(res.data);
+        } catch (err) {
+            console.error('[AdminDashboard] Error al cargar usuarios:', err);
+        }
+    };
+
     useEffect(() => {
-        const fetchUsers = async () => {
-            try {
-                const res = await axiosClient.get('/admin/users');
-                setUsers(res.data);
-            } catch (err) {
-                // Log de error con contexto para debugging
-                console.error('[AdminDashboard] Error al cargar usuarios:', err);
-            }
-        };
         fetchUsers();
     }, [token]);
+
+    const handleReset = async (user) => {
+        const confirmMsg = t('resetConfirm') || `¿Estás seguro de que deseas limpiar toda la información de este usuario? Esta acción es irreversible.`;
+        if (window.confirm(confirmMsg)) {
+            try {
+                await axiosClient.post(`/admin/users/${user.id}/reset`);
+                alert(t('dataResetSuccess') || 'Información del usuario reseteada con éxito.');
+                fetchUsers();
+            } catch (err) {
+                console.error('[AdminDashboard] Error al resetear usuario:', err);
+                alert('Error al resetear la información del usuario.');
+            }
+        }
+    };
 
     return (
         <div className="min-h-screen bg-slate-50 text-slate-900 font-sans pb-10">
@@ -78,15 +92,26 @@ const AdminDashboard = ({ lang, setLang, setForceClientView }) => {
                             <thead>
                                 <tr className="bg-slate-100 text-[10px] font-black text-slate-500 uppercase tracking-widest">
                                     <th className="px-6 py-4">{t('clientEmail')}</th>
+                                    <th className="px-6 py-4">{t('role') || 'Rol'}</th>
                                     <th className="px-6 py-4">{t('registrationDate')}</th>
                                     <th className="px-6 py-4">{t('lastLogin')}</th>
                                     <th className="px-6 py-4">{t('totalTransactions')}</th>
+                                    <th className="px-6 py-4 text-right">{t('actions') || 'Acciones'}</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100">
                                 {users.map(user => (
                                     <tr key={user.id} className="hover:bg-white transition-colors">
                                         <td className="px-6 py-4 font-bold text-slate-700">{user.email}</td>
+                                        <td className="px-6 py-4 text-sm">
+                                            <span className={`px-2 py-1 rounded-md text-[10px] font-black uppercase tracking-wider ${
+                                                user.role === 'admin' 
+                                                    ? 'bg-rose-100 text-rose-700 border border-rose-200' 
+                                                    : 'bg-blue-100 text-blue-700 border border-blue-200'
+                                            }`}>
+                                                {user.role}
+                                            </span>
+                                        </td>
                                         <td className="px-6 py-4 text-sm text-slate-500">
                                             {new Date(user.created_at).toLocaleDateString()}
                                         </td>
@@ -98,11 +123,21 @@ const AdminDashboard = ({ lang, setLang, setForceClientView }) => {
                                                 {user.transaction_count}
                                             </span>
                                         </td>
+                                        <td className="px-6 py-4 text-right">
+                                            <button
+                                                onClick={() => handleReset(user)}
+                                                className="bg-amber-50 hover:bg-amber-100 text-amber-700 p-2 rounded-xl transition-all border border-amber-200 cursor-pointer inline-flex items-center gap-1.5 font-bold text-xs"
+                                                title={t('resetData') || 'Resetear Datos'}
+                                            >
+                                                <RefreshCw size={14} />
+                                                <span>{t('resetData') || 'Reset'}</span>
+                                            </button>
+                                        </td>
                                     </tr>
                                 ))}
                                 {users.length === 0 && (
                                     <tr>
-                                        <td colSpan="4" className="px-6 py-8 text-center text-slate-400 font-medium">
+                                        <td colSpan="6" className="px-6 py-8 text-center text-slate-400 font-medium">
                                             {t('noClients')}
                                         </td>
                                     </tr>

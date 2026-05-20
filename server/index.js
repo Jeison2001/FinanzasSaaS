@@ -10,10 +10,10 @@ import compression from 'compression';
 import cron from 'node-cron';
 import logger from './logger.js';
 import db from './db.js';
-import { v4 as uuidv4 } from 'uuid';
-import { localToday, getNextDate } from './utils/date.utils.js';
+import { localToday } from './utils/date.utils.js';
 
 import { startJobWorker } from './services/jobWorker.service.js';
+import { processRecurringTransactions } from './services/recurrence.service.js';
 
 import authRoutes from './routes/auth.routes.js';
 import transactionRoutes from './routes/transactions.routes.js';
@@ -24,8 +24,25 @@ import notificationRoutes from './routes/notifications.routes.js';
 
 const app = express();
 app.use(compression());
-app.use(cors());
+
+// Configuración segura de CORS
+const allowedOrigins = process.env.ALLOWED_ORIGINS 
+    ? process.env.ALLOWED_ORIGINS.split(',') 
+    : ['http://localhost:5173', 'http://127.0.0.1:5173'];
+
+app.use(cors({
+    origin: (origin, callback) => {
+        if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            callback(new Error('Bloqueado por política CORS de FinanzasSaaS'));
+        }
+    },
+    credentials: true
+}));
+
 app.use(express.json());
+
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -38,49 +55,6 @@ app.use('/api/notifications', notificationRoutes);
 // ─────────────────────────────────────────────────
 // CRON
 // ─────────────────────────────────────────────────
-
-const processAllRecurring = async () => {
-    const today = localToday();
-    let totalGenerated = 0;
-    try {
-        let hasMoreProcessable = true;
-        let protectionLoopCounter = 0;
-
-        while (hasMoreProcessable && protectionLoopCounter < 50) {
-            protectionLoopCounter++;
-
-            const result = await db.execute({
-                sql: `SELECT * FROM transactions WHERE status = 'planned' AND date <= ? AND recurrence != 'none' AND recurrence IS NOT NULL`,
-                args: [today]
-            });
-
-            const recurringDue = result.rows;
-            if (recurringDue.length === 0) {
-                hasMoreProcessable = false;
-                break;
-            }
-
-            for (const tx of recurringDue) {
-                const nextDateStr = getNextDate(tx.date, tx.recurrence);
-                await db.execute({
-                    sql: `INSERT INTO transactions (id, user_id, type, category, amount, description, date, status, recurrence) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-                    args: [uuidv4(), tx.user_id, tx.type, tx.category, tx.amount, tx.description, nextDateStr, 'planned', tx.recurrence]
-                });
-
-                await db.execute({
-                    sql: `UPDATE transactions SET status = 'completed' WHERE id = ?`,
-                    args: [tx.id]
-                });
-                totalGenerated++;
-            }
-        }
-
-        return { recursions: totalGenerated };
-    } catch (err) {
-        logger.error({ err }, 'Error in processAllRecurring');
-        return { recursions: 0 };
-    }
-};
 
 cron.schedule('0 0 * * *', async () => {
     logger.info('[CRON] Iniciando proceso diario...');
@@ -96,9 +70,18 @@ cron.schedule('0 0 * * *', async () => {
             return;
         }
 
-        logger.info('[CRON] Procesando recurrencias de todos los usuarios...');
-        const r = await processAllRecurring();
-        logger.info({ created: r.recursions }, '[CRON] Completado');
+        // Buscar todos los usuarios con transacciones planned vencidas
+        const usersRes = await db.execute({
+            sql: `SELECT DISTINCT user_id FROM transactions WHERE status = 'planned' AND date <= ? AND recurrence != 'none' AND recurrence IS NOT NULL`,
+            args: [localToday()]
+        });
+
+        let totalCreated = 0;
+        for (const { user_id } of usersRes.rows) {
+            const r = await processRecurringTransactions(user_id);
+            totalCreated += r.recursions;
+        }
+        logger.info({ created: totalCreated, users: usersRes.rows.length }, '[CRON] Completado');
 
     } catch (err) {
         logger.error({ err }, '[CRON] Error');
@@ -113,7 +96,16 @@ if (!PORT) {
     process.exit(1);
 }
 
+// Limpiar locks huérfanos de procesamiento de recurrencia en el arranque
+try {
+    await db.execute("DELETE FROM cron_locks WHERE id LIKE 'recurring_%'");
+    logger.info('[Startup] Locks huérfanos de recurrencia limpiados con éxito.');
+} catch (err) {
+    logger.error({ err }, '[Startup] Error limpiando locks huérfanos de recurrencia.');
+}
+
 app.listen(PORT, () => {
     logger.info(`FinanzasSaaS API escuchando en el puerto ${PORT}`);
     startJobWorker();
 });
+

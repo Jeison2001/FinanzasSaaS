@@ -49,8 +49,3 @@ export const startJobWorker = () => {
         }
     }, 5000);
 };
-
-
-    // Arrancar el primer tick
-    tick();
-};

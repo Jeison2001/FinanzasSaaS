@@ -67,7 +67,7 @@ export const translationsCa = {
     sixMonthTrend: "Tendència Anual",
 
     trendTitle: "Tendència Financera",
-    trendTitleFiltered: "Tendència del Període",
+    trendTitleFiltered: "Període Trend",
     addFirstTransaction: "Afegir Primera Transacció",
     recurrence: "Repetició",
     none: "Sense repetició",
@@ -83,7 +83,10 @@ export const translationsCa = {
     netBalance: "Balanç Net",
     noResultsTitle: "Sense Resultats",
     noResultsDesc: "No hi ha transaccions per al període seleccionat. Prova un rang diferent o neteja els filtres.",
-    action_dismiss: "Descartar"
+    action_dismiss: "Descartar",
+    notif_recurring_processed: "S'han processat les teves transaccions planificades pendents.",
+    role: "Rol",
+    resetData: "Netejar Dades",
+    resetConfirm: "Estàs segur que vols netejar tota la informació d'aquest usuari? Aquesta acció és irreversible i eliminarà totes les seves transaccions i notificacions.",
+    dataResetSuccess: "Informació de l'usuari resetejada amb èxit."
 };
-
-
