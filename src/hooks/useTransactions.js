@@ -1,60 +1,78 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from './useAuth';
 import axiosClient from '../api/axiosClient';
 
 /**
  * Gestiona el estado y las operaciones CRUD de transacciones.
- * El GET /api/transactions también dispara el procesado de recurrencias en el servidor.
+ * El listado es server-side: recibe los filtros, los debouncea (300ms) y
+ * pagina sobre el set filtrado con { rows, total }. Un guard anti-race
+ * descarta respuestas obsoletas cuando los filtros cambian rápido.
+ * `totalAll` es el total sin filtros (primer fetch) — para el EmptyState.
  */
-export const useTransactions = () => {
+export const useTransactions = (filters = {}) => {
     const { token } = useAuth();
     const [transactions, setTransactions] = useState([]);
-    const [offset, setOffset] = useState(0);
     const [hasMore, setHasMore] = useState(true);
     const [loading, setLoading] = useState(false);
+    const [totalAll, setTotalAll] = useState(0);
     const [refreshTrigger, setRefreshTrigger] = useState(0);
     const LIMIT = 50;
 
-    const triggerRefresh = () => setRefreshTrigger(prev => prev + 1);
+    const requestIdRef = useRef(0);
 
-    const fetchTransactions = async (currentOffset = 0, append = false) => {
+    // Debounce: no disparar una petición por cada tecla del buscador
+    const [debouncedFilters, setDebouncedFilters] = useState(filters);
+    useEffect(() => {
+        const timer = setTimeout(() => setDebouncedFilters(filters), 300);
+        return () => clearTimeout(timer);
+    }, [filters]);
+
+    const hasActiveFilters = Object.values(debouncedFilters).some(v => v !== '' && v !== 'all');
+
+    const fetchTransactions = useCallback(async (currentOffset = 0, append = false, isInitial = false) => {
         if (!token) return;
+        const myId = ++requestIdRef.current;
         setLoading(true);
         try {
-            const res = await axiosClient.get(`/transactions?limit=${LIMIT}&offset=${currentOffset}`);
-            const data = res.data;
-            if (data.length < LIMIT) setHasMore(false);
-            else setHasMore(true);
+            const params = new URLSearchParams({ limit: String(LIMIT), offset: String(currentOffset) });
+            Object.entries(debouncedFilters).forEach(([key, value]) => {
+                if (value !== '' && value !== 'all') params.append(key, value);
+            });
 
-            if (append) {
-                setTransactions(prev => [...prev, ...data]);
-            } else {
-                setTransactions(data);
-            }
+            const res = await axiosClient.get(`/transactions?${params.toString()}`);
+            if (myId !== requestIdRef.current) return; // respuesta obsoleta
+
+            const { rows, total } = res.data;
+            if (isInitial) setTotalAll(total);
+            setHasMore(currentOffset + rows.length < total);
+            setTransactions(prev => append ? [...prev, ...rows] : rows);
         } catch (err) {
             console.error('Failed to fetch transactions:', err);
         } finally {
-            setLoading(false);
+            if (myId === requestIdRef.current) setLoading(false);
         }
-    };
+    }, [token, debouncedFilters]);
 
+    // Fetch inicial (token) y cada vez que cambian filtros o refreshTrigger
     useEffect(() => {
-        setOffset(0);
-        fetchTransactions(0, false);
-    }, [token]);
+        if (!token) return;
+        setTransactions([]);
+        fetchTransactions(0, false, !hasActiveFilters);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [token, debouncedFilters, refreshTrigger]);
+
+    const triggerRefresh = () => setRefreshTrigger(prev => prev + 1);
 
     const loadMore = () => {
-        const nextOffset = offset + LIMIT;
-        setOffset(nextOffset);
-        fetchTransactions(nextOffset, true);
+        if (loading || !hasMore) return;
+        fetchTransactions(transactions.length, true, false);
     };
 
     const addTransaction = async (newTx) => {
         try {
             const res = await axiosClient.post('/transactions', newTx);
             if (res.status === 201) {
-                setOffset(0);
-                await fetchTransactions(0, false);
+                await fetchTransactions(0, false, false);
                 triggerRefresh();
             }
         } catch (err) {
@@ -89,13 +107,14 @@ export const useTransactions = () => {
 
     return {
         transactions,
+        totalAll,
         addTransaction,
         deleteTransaction,
         editTransaction,
         loadMore,
         hasMore,
         loading,
-        refreshTrigger
+        refreshTrigger,
+        triggerRefresh
     };
 };
-

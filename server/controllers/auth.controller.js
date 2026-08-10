@@ -10,7 +10,7 @@ dotenv.config();
 const SECRET_KEY = process.env.JWT_SECRET;
 
 export const register = async (req, res) => {
-    const { email, password } = req.body;
+    const { email, password, currency = 'EUR' } = req.body;
     const normalizedEmail = email.toLowerCase();
 
     try {
@@ -30,9 +30,11 @@ export const register = async (req, res) => {
             args: [id, normalizedEmail, hashedPassword, userRole]
         });
 
+        // La moneda se elige en el registro y queda fijada para el usuario
+        // (sin conversión, el selector global se eliminó por engañoso).
         await db.execute({
-            sql: 'INSERT INTO user_settings (user_id) VALUES (?)',
-            args: [id]
+            sql: 'INSERT INTO user_settings (user_id, currency) VALUES (?, ?)',
+            args: [id, currency]
         });
 
         const token = jwt.sign({ id, email: normalizedEmail, role: userRole }, SECRET_KEY, { expiresIn: '365d' });

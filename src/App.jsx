@@ -18,15 +18,17 @@ import Header from './components/layout/Header';
 import NotificationBanner from './components/layout/NotificationBanner';
 import KPICards from './components/dashboard/KPICards';
 import Sidebar from './components/dashboard/Sidebar';
+import BudgetsPanel from './components/dashboard/BudgetsPanel';
 import TransactionFilters from './components/transactions/TransactionFilters';
 import TransactionTable from './components/transactions/TransactionTable';
 import AddTransactionModal from './components/transactions/AddTransactionModal';
 import SetGoalModal from './components/transactions/SetGoalModal';
+import ImportExportModal from './components/transactions/ImportExportModal';
 import Reports from './components/dashboard/Reports';
 
 const App = () => {
   const { isAuthenticated, role } = useAuth();
-  const { lang, setLang, currency, setCurrency, savingsGoal, setSavingsGoal, activeTab, setActiveTab } = useAppStore();
+  const { lang, setLang, currency, savingsGoal, setSavingsGoal, activeTab, setActiveTab } = useAppStore();
 
   const { saveSettings } = useSettings(isAuthenticated);
 
@@ -37,16 +39,24 @@ const App = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showGoalModal, setShowGoalModal] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [period, setPeriod] = useState('month');
 
-  const { transactions, addTransaction, deleteTransaction, editTransaction, loadMore, hasMore, loading, refreshTrigger } = useTransactions();
-  const { notifications, dismissNotification } = useNotifications();
-  const { filters, setters, filteredTransactions, clearAllFilters } = useFilters(transactions);
-  const stats = useStats(refreshTrigger, savingsGoal);
+  const { filters, setters, clearAllFilters } = useFilters();
+  const { transactions, totalAll, addTransaction, deleteTransaction, editTransaction, loadMore, hasMore, loading, refreshTrigger, triggerRefresh } = useTransactions(filters);
+  const { notifications, dismissNotification } = useNotifications(refreshTrigger);
+  const stats = useStats(refreshTrigger, savingsGoal, period);
+  const currencyLabel = currency; // moneda única por usuario (sin conversión)
 
   // Abre el modal en modo edición con la transacción seleccionada
   const handleEditClick = (trx) => {
     setTransactionToEdit(trx);
     setShowAddModal(true);
+  };
+
+  // Confirmación manual de una transacción pendiente/vencida
+  const handleConfirm = async (id) => {
+    await editTransaction(id, { status: 'completed' });
   };
 
   if (!isAuthenticated) return <AuthCard />;
@@ -60,8 +70,6 @@ const App = () => {
       <Header
         lang={lang}
         setLang={setLang}
-        currency={currency}
-        setCurrency={setCurrency}
         setShowAddModal={() => { setTransactionToEdit(null); setShowAddModal(true); }}
         role={role}
         setForceClientView={setForceClientView}
@@ -69,22 +77,28 @@ const App = () => {
         t={t}
       />
 
-      <NotificationBanner 
-        notifications={notifications} 
-        onDismiss={dismissNotification} 
-        t={t} 
+      <NotificationBanner
+        notifications={notifications}
+        onDismiss={dismissNotification}
+        t={t}
       />
 
       <main className="w-full max-w-[1400px] 2xl:max-w-[1600px] mx-auto p-4 md:p-6 space-y-6">
-        <KPICards stats={stats} lang={lang} currency={currency} t={t} />
+        <KPICards stats={stats} lang={lang} currency={currencyLabel} t={t} period={period} onPeriodChange={setPeriod} />
 
-        {/* Selector de vista: historial o informes */}
+        {/* Selector de vista: historial, presupuestos o informes */}
         <div className="flex bg-white rounded-2xl p-1 shadow-sm border border-slate-200 w-full sm:w-fit mx-auto lg:mx-0">
           <button
             onClick={() => setActiveTab('transactions')}
             className={`flex-1 sm:flex-none px-6 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'transactions' ? 'bg-slate-950 text-white shadow-md' : 'text-slate-500 hover:bg-slate-50 cursor-pointer'}`}
           >
             {t('history')}
+          </button>
+          <button
+            onClick={() => setActiveTab('budgets')}
+            className={`flex-1 sm:flex-none px-6 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'budgets' ? 'bg-slate-950 text-white shadow-md' : 'text-slate-500 hover:bg-slate-50 cursor-pointer'}`}
+          >
+            {t('budgets')}
           </button>
           <button
             onClick={() => setActiveTab('reports')}
@@ -97,18 +111,19 @@ const App = () => {
         {activeTab === 'transactions' ? (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2 space-y-4">
-              {transactions.length === 0 ? (
+              {totalAll === 0 ? (
                 <TransactionTable
                   transactions={[]}
                   totalTransactionsCount={0}
                   setShowAddModal={setShowAddModal}
                   onEdit={handleEditClick}
+                  onConfirm={handleConfirm}
                   deleteTransaction={deleteTransaction}
                   loadMore={loadMore}
                   hasMore={hasMore}
                   loading={loading}
                   lang={lang}
-                  currency={currency}
+                  currency={currencyLabel}
                   t={t}
                 />
               ) : (
@@ -123,16 +138,17 @@ const App = () => {
                     t={t}
                   />
                   <TransactionTable
-                    transactions={filteredTransactions}
-                    totalTransactionsCount={transactions.length}
+                    transactions={transactions}
+                    totalTransactionsCount={totalAll}
                     setShowAddModal={setShowAddModal}
                     onEdit={handleEditClick}
+                    onConfirm={handleConfirm}
                     deleteTransaction={deleteTransaction}
                     loadMore={loadMore}
                     hasMore={hasMore}
                     loading={loading}
                     lang={lang}
-                    currency={currency}
+                    currency={currencyLabel}
                     t={t}
                   />
                 </>
@@ -144,13 +160,15 @@ const App = () => {
               savingsGoal={savingsGoal}
               transactions={transactions}
               lang={lang}
-              currency={currency}
+              currency={currencyLabel}
               setShowGoalModal={setShowGoalModal}
               t={t}
             />
           </div>
+        ) : activeTab === 'budgets' ? (
+          <BudgetsPanel lang={lang} currency={currencyLabel} t={t} />
         ) : (
-          <Reports refreshTrigger={refreshTrigger} lang={lang} currency={currency} t={t} />
+          <Reports refreshTrigger={refreshTrigger} lang={lang} currency={currencyLabel} t={t} onOpenImportExport={() => setShowImportModal(true)} />
         )}
       </main>
 
@@ -160,7 +178,7 @@ const App = () => {
           addTransaction={addTransaction}
           editTransaction={editTransaction}
           transactionToEdit={transactionToEdit}
-          currency={currency}
+          currency={currencyLabel}
           t={t}
         />
       )}
@@ -170,10 +188,14 @@ const App = () => {
           savingsGoal={savingsGoal}
           setSavingsGoal={setSavingsGoal}
           setShowGoalModal={setShowGoalModal}
-          currency={currency}
+          currency={currencyLabel}
           saveSettings={saveSettings}
           t={t}
         />
+      )}
+
+      {showImportModal && (
+        <ImportExportModal setShowModal={setShowImportModal} t={t} onImported={triggerRefresh} />
       )}
     </div>
   );

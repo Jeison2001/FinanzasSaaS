@@ -21,7 +21,7 @@ export const sendPasswordResetEmail = async (toEmail, resetToken) => {
     await resend.emails.send({
         from: FROM_EMAIL,
         to: toEmail,
-        subject: 'Restablece tu contraseña — FinanzaSaaS',
+        subject: 'Restablece tu contraseña — FinanzasSaaS',
         html: `
         <!DOCTYPE html>
         <html>
@@ -30,7 +30,7 @@ export const sendPasswordResetEmail = async (toEmail, resetToken) => {
             <div style="max-width: 480px; margin: auto; background: white; border-radius: 24px; padding: 40px; border: 1px solid #e2e8f0;">
                 <div style="text-align: center; margin-bottom: 32px;">
                     <div style="display: inline-flex; align-items: center; gap: 8px; background: #0f172a; padding: 12px 20px; border-radius: 16px;">
-                        <span style="color: #10b981; font-size: 20px; font-weight: 900;">Finanza</span><span style="color: white; font-size: 20px; font-weight: 900;">SaaS</span>
+                        <span style="color: #10b981; font-size: 20px; font-weight: 900;">Finanzas</span><span style="color: white; font-size: 20px; font-weight: 900;">SaaS</span>
                     </div>
                 </div>
                 <h2 style="text-align: center; color: #0f172a; font-size: 22px; font-weight: 900; margin: 0 0 12px;">Restablece tu contraseña</h2>

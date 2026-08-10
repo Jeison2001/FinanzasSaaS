@@ -1,4 +1,10 @@
-/** Divisas disponibles en el selector de configuración. */
+/** Meses (0-indexados, como el frontend). */
+export const months = Array.from({ length: 12 }, (_, i) => i);
+
+/**
+ * Divisas disponibles. Se eligen UNA VEZ en el registro y quedan fijadas
+ * para el usuario — no hay conversión, por eso no existe selector global.
+ */
 export const worldCurrencies = [
     { code: 'USD', name: 'US Dollar' }, { code: 'EUR', name: 'Euro' },
     { code: 'GBP', name: 'British Pound' }, { code: 'JPY', name: 'Japanese Yen' },
@@ -7,8 +13,18 @@ export const worldCurrencies = [
     { code: 'BRL', name: 'Real Brasileiro' }, { code: 'PEN', name: 'Sol Peruano' },
 ];
 
-export const months = Array.from({ length: 12 }, (_, i) => i);
-export const years = [2024, 2025, 2026];
+/**
+ * Años disponibles para filtros, derivados del año actual para no quedar
+ * obsoletos (año anterior, actual y siguiente).
+ */
+const currentYear = new Date().getFullYear();
+export const years = [currentYear - 1, currentYear, currentYear + 1];
+
+/** Períodos disponibles en los KPIs. */
+export const statPeriods = ['month', 'year', 'all'];
+
+/** Estados de transacción. */
+export const txStatuses = ['completed', 'planned', 'overdue'];
 
 /**
  * Claves de categoría por tipo de transacción.

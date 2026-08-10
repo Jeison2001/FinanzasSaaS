@@ -5,14 +5,16 @@ import { getNextDate, localToday } from '../utils/date.utils.js';
 
 /**
  * Generates and inserts the next 'planned' transaction for a recurring series.
- * @param {Object} tx - Source transaction with { date, recurrence, user_id, type, category, amount, description }
+ * Propaga series_id: cada ocurrencia hereda el ancla de la serie (id de la
+ * transacción origen), permitiendo purgar/cancelar la serie completa.
+ * @param {Object} tx - Source transaction with { date, recurrence, user_id, type, category, amount, description, series_id }
  * @param {Object} txClient - Database client or transaction client
  */
 export const generateNextRecurrence = async (tx, txClient = db) => {
     const nextDateStr = getNextDate(tx.date, tx.recurrence);
     await txClient.execute({
-        sql: `INSERT INTO transactions (id, user_id, type, category, amount, description, date, status, recurrence) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        args: [uuidv4(), tx.user_id, tx.type, tx.category, tx.amount, tx.description, nextDateStr, 'planned', tx.recurrence]
+        sql: `INSERT INTO transactions (id, user_id, type, category, amount, description, date, status, recurrence, series_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        args: [uuidv4(), tx.user_id, tx.type, tx.category, tx.amount, tx.description, nextDateStr, 'planned', tx.recurrence, tx.series_id || null]
     });
 };
 
@@ -66,8 +68,11 @@ export const processRecurringTransactions = async (userId) => {
                 try {
                     await generateNextRecurrence(tx, sqlTx);
 
+                    // La ocurrencia vencida NO se auto-confirma: pasa a 'overdue'
+                    // (pendiente de confirmación manual). Confirmar pagos es una
+                    // decisión del usuario, no del sistema.
                     await sqlTx.execute({
-                        sql: `UPDATE transactions SET status = 'completed' WHERE id = ?`,
+                        sql: `UPDATE transactions SET status = 'overdue' WHERE id = ?`,
                         args: [tx.id]
                     });
                     

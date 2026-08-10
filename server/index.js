@@ -12,7 +12,6 @@ import logger from './logger.js';
 import db from './db.js';
 import { localToday } from './utils/date.utils.js';
 
-import { startJobWorker } from './services/jobWorker.service.js';
 import { processRecurringTransactions } from './services/recurrence.service.js';
 
 import authRoutes from './routes/auth.routes.js';
@@ -20,6 +19,7 @@ import transactionRoutes from './routes/transactions.routes.js';
 import settingsRoutes from './routes/settings.routes.js';
 import adminRoutes from './routes/admin.routes.js';
 import notificationRoutes from './routes/notifications.routes.js';
+import budgetRoutes from './routes/budgets.routes.js';
 
 
 const app = express();
@@ -64,6 +64,7 @@ app.use('/api/transactions', transactionRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/budgets', budgetRoutes);
 
 
 // ─────────────────────────────────────────────────
@@ -120,6 +121,5 @@ try {
 
 app.listen(PORT, () => {
     logger.info(`FinanzasSaaS API escuchando en el puerto ${PORT}`);
-    startJobWorker();
 });
 

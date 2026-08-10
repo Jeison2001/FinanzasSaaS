@@ -1,9 +1,8 @@
 import React from 'react';
 import { BarChart3, PlusCircle, LogOut, Shield } from 'lucide-react';
-import { worldCurrencies } from '../../utils/constants';
 import { useAuth } from '../../hooks/useAuth';
 
-const Header = ({ lang, setLang, currency, setCurrency, setShowAddModal, role, setForceClientView, saveSettings, t }) => {
+const Header = ({ lang, setLang, setShowAddModal, role, setForceClientView, saveSettings, t }) => {
     const { logout } = useAuth();
     return (
         <header className="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
@@ -28,15 +27,6 @@ const Header = ({ lang, setLang, currency, setCurrency, setShowAddModal, role, s
                             <option value="en">EN</option>
                             <option value="ca">CA</option>
                         </select>
-                        <select
-                            value={currency}
-                            onChange={(e) => { setCurrency(e.target.value); saveSettings({ currency: e.target.value }); }}
-                            className="bg-slate-50 text-[10px] font-black p-1 rounded border border-slate-200 uppercase tracking-widest cursor-pointer hover:bg-slate-100 transition-colors"
-                        >
-                            {worldCurrencies.map(c => (
-                                <option key={c.code} value={c.code}>{c.code}</option>
-                            ))}
-                        </select>
                     </div>
 
                     {role === 'admin' && (
@@ -58,6 +48,7 @@ const Header = ({ lang, setLang, currency, setCurrency, setShowAddModal, role, s
                     </button>
                     <button
                         onClick={logout}
+                        title={t('logout')}
                         className="bg-rose-100 hover:bg-rose-200 text-rose-600 px-3 py-2 rounded-xl flex items-center gap-2 transition-all shadow-sm font-bold text-sm ml-2 cursor-pointer"
                     >
                         <LogOut size={16} />

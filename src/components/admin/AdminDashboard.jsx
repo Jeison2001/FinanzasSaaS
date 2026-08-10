@@ -72,7 +72,7 @@ const AdminDashboard = ({ lang, setLang, setForceClientView }) => {
                             onClick={logout}
                             className="bg-slate-800 hover:bg-slate-700 text-rose-400 px-3 py-2 rounded-xl flex items-center gap-2 transition-all shadow-sm font-bold text-sm cursor-pointer"
                         >
-                            <LogOut size={16} /> <span className="hidden sm:inline">Logout</span>
+                            <LogOut size={16} /> <span className="hidden sm:inline">{t('logout')}</span>
                         </button>
                     </div>
                 </div>

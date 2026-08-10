@@ -7,14 +7,14 @@ import React, { useRef, useState } from 'react';
 import {
     ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend
 } from 'recharts';
-import { Download, AlertCircle, X, Search } from 'lucide-react';
+import { Download, AlertCircle, X, Search, FileSpreadsheet } from 'lucide-react';
 import { formatCurrency } from '../../utils/formatters';
 import { useReports } from '../../hooks/useReports';
 import { months, years } from '../../utils/constants';
 
 const COLORS = ['#4f46e5', '#ec4899', '#f59e0b', '#10b981', '#6366f1', '#8b5cf6', '#ef4444', '#3b82f6'];
 
-const Reports = ({ refreshTrigger, lang, currency, t }) => {
+const Reports = ({ refreshTrigger, lang, currency, t, onOpenImportExport }) => {
     const reportRef = useRef(null);
     const [filterMonth, setFilterMonth] = useState('');
     const [filterYear, setFilterYear] = useState('');
@@ -29,7 +29,7 @@ const Reports = ({ refreshTrigger, lang, currency, t }) => {
         appliedFilters.start,
         appliedFilters.end
     );
-    const { expensesByCategory, incomesBySource, trendData } = reportsData;
+    const { expensesByCategory, incomesBySource, trendData, prevExpensesByCategory = {}, prevIncomesBySource = {} } = reportsData;
 
     const applyFilters = () => {
         setAppliedFilters({ month: filterMonth, year: filterYear, start: startDate, end: endDate });
@@ -49,6 +49,7 @@ const Reports = ({ refreshTrigger, lang, currency, t }) => {
 
     // Process: Expenses by Category
     const pieExpenseData = Object.keys(expensesByCategory).map(key => ({
+        key,
         name: t(key),
         value: expensesByCategory[key],
         total: totalExpensesCalc
@@ -56,19 +57,35 @@ const Reports = ({ refreshTrigger, lang, currency, t }) => {
 
     // Process: Income Sources
     const pieIncomeData = Object.keys(incomesBySource).map(key => ({
+        key,
         name: t(key),
         value: incomesBySource[key],
         total: totalIncomesCalc
     })).sort((a, b) => b.value - a.value);
 
-    // Summary Metrics & Enhanced Trend Data
-    const totalMonths = trendData.length;
-    const totalTrendIncomes = trendData.reduce((acc, curr) => acc + curr.incomes, 0);
-    const totalTrendExpenses = trendData.reduce((acc, curr) => acc + curr.expenses, 0);
-    const avgIncome = totalMonths > 0 ? totalTrendIncomes / totalMonths : 0;
-    const avgExpense = totalMonths > 0 ? totalTrendExpenses / totalMonths : 0;
-    const savingsRate = totalTrendIncomes > 0 ? ((totalTrendIncomes - totalTrendExpenses) / totalTrendIncomes) * 100 : 0;
+    // Delta % vs período anterior para una categoría (null si no hay dato previo)
+    const getDelta = (key, prevMap, curMap) => {
+        const prev = prevMap[key];
+        if (prev === undefined || prev === null || prev === 0) return null;
+        const cur = curMap[key];
+        if (!cur) return null;
+        return ((cur - prev) / prev) * 100;
+    };
 
+    const DeltaBadge = ({ delta }) => {
+        if (delta === null) return null;
+        const up = delta >= 0;
+        return (
+            <span
+                className={`ml-2 text-[9px] font-black px-1.5 py-0.5 rounded-md ${up ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-600'}`}
+                title={t('vsPrevPeriod')}
+            >
+                {up ? '▲' : '▼'} {Math.abs(delta).toFixed(0)}%
+            </span>
+        );
+    };
+
+    // Summary Metrics & Enhanced Trend Data
     const enhancedTrendData = trendData.map(item => ({
         ...item,
         netBalance: item.incomes - item.expenses
@@ -213,6 +230,13 @@ const Reports = ({ refreshTrigger, lang, currency, t }) => {
                     >
                         <Download size={16} /> <span className="hidden sm:inline">{t('downloadPDF')}</span>
                     </button>
+
+                    <button
+                        onClick={onOpenImportExport}
+                        className="bg-emerald-500 hover:bg-emerald-600 text-white px-5 py-2 rounded-xl flex items-center gap-2 transition-all shadow-md font-bold text-sm cursor-pointer"
+                    >
+                        <FileSpreadsheet size={16} /> <span className="hidden sm:inline">{t('importCSV')}</span>
+                    </button>
                 </div>
             </div>
 
@@ -230,10 +254,14 @@ const Reports = ({ refreshTrigger, lang, currency, t }) => {
                                     {pieExpenseData.map((item, index) => {
                                         const percentage = item.total > 0 ? ((item.value / item.total) * 100).toFixed(1) : 0;
                                         const color = COLORS[index % COLORS.length];
+                                        const delta = getDelta(item.key, prevExpensesByCategory, expensesByCategory);
                                         return (
                                             <div key={index} className="space-y-1">
                                                 <div className="flex justify-between items-center text-sm">
-                                                    <span className="font-bold text-slate-700">{item.name}</span>
+                                                    <span className="font-bold text-slate-700 flex items-center">
+                                                        {item.name}
+                                                        <DeltaBadge delta={delta} />
+                                                    </span>
                                                     <span className="font-bold text-slate-900">{formatCurrency(item.value, lang, currency)}</span>
                                                 </div>
                                                 <div className="flex items-center gap-3">
@@ -261,10 +289,14 @@ const Reports = ({ refreshTrigger, lang, currency, t }) => {
                                     {pieIncomeData.map((item, index) => {
                                         const percentage = item.total > 0 ? ((item.value / item.total) * 100).toFixed(1) : 0;
                                         const color = COLORS[(index + 4) % COLORS.length];
+                                        const delta = getDelta(item.key, prevIncomesBySource, incomesBySource);
                                         return (
                                             <div key={index} className="space-y-1">
                                                 <div className="flex justify-between items-center text-sm">
-                                                    <span className="font-bold text-slate-700">{item.name}</span>
+                                                    <span className="font-bold text-slate-700 flex items-center">
+                                                        {item.name}
+                                                        <DeltaBadge delta={delta} />
+                                                    </span>
                                                     <span className="font-bold text-slate-900">{formatCurrency(item.value, lang, currency)}</span>
                                                 </div>
                                                 <div className="flex items-center gap-3">

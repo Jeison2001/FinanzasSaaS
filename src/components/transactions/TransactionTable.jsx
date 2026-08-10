@@ -1,27 +1,47 @@
 /**
  * Tabla de Transacciones Principal.
  * Implementa vista responsiva (Cards en móvil, Tabla en desktop).
- * Soporta edición, eliminación y visualización de estados (Confirmado/Pendiente).
+ * Soporta edición, confirmación manual (completed/planned/overdue),
+ * eliminación y visualización de estados (Confirmado/Pendiente/Vencido).
  */
 import React from 'react';
-import { Trash2 } from 'lucide-react';
+import { Trash2, Check } from 'lucide-react';
 import { formatCurrency, formatDateI18n } from '../../utils/formatters';
 import EmptyState from './EmptyState';
 
-const StatusBadge = ({ status, t }) => (
-    <span className={`px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border whitespace-nowrap ${status === 'completed'
-        ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
-        : 'bg-orange-50 text-orange-600 border-orange-100'
-        }`}>
-        {status === 'completed' ? t('confirmed') : t('pending')}
-    </span>
-);
+const StatusBadge = ({ status, t }) => {
+    const styles = {
+        completed: 'bg-emerald-50 text-emerald-600 border-emerald-100',
+        planned: 'bg-orange-50 text-orange-600 border-orange-100',
+        overdue: 'bg-rose-50 text-rose-600 border-rose-200'
+    };
+    const labels = { completed: t('confirmed'), planned: t('pending'), overdue: t('overdue') };
+    return (
+        <span className={`px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border whitespace-nowrap ${styles[status] || styles.planned}`}>
+            {labels[status] || status}
+        </span>
+    );
+};
+
+const ConfirmButton = ({ item, onConfirm, t }) => {
+    if (item.status === 'completed') return null;
+    return (
+        <button
+            onClick={() => onConfirm(item.id)}
+            title={t('confirmTx')}
+            className="opacity-0 group-hover:opacity-100 p-1.5 text-emerald-500 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition-all cursor-pointer shrink-0"
+        >
+            <Check size={14} strokeWidth={3} />
+        </button>
+    );
+};
 
 const TransactionTable = ({
     transactions,
     totalTransactionsCount,
     setShowAddModal,
     onEdit,
+    onConfirm,
     deleteTransaction,
     loadMore,
     hasMore,
@@ -51,7 +71,6 @@ const TransactionTable = ({
                         <div className="flex-1 min-w-0 cursor-pointer" onClick={() => onEdit(item)}>
                             <p className="text-sm font-bold text-slate-800 truncate">
                                 {item.description}
-                                {!!item.is_modified && <span className="ml-1 text-amber-500 text-[9px]">✎</span>}
                             </p>
                             <p className="text-[10px] text-slate-400 font-bold">
                                 {formatDateI18n(item.date, lang)} · {t(item.category)}
@@ -66,6 +85,7 @@ const TransactionTable = ({
                             <StatusBadge status={item.status} t={t} />
                         </div>
 
+                        <ConfirmButton item={item} onConfirm={onConfirm} t={t} />
                         <button
                             onClick={() => deleteTransaction(item.id)}
                             className="opacity-0 group-hover:opacity-100 p-1.5 text-slate-300 hover:text-rose-500 transition-all cursor-pointer shrink-0"
@@ -112,11 +132,6 @@ const TransactionTable = ({
                                 }`}>
                                 <td className="px-6 py-4 text-xs font-bold text-slate-500 whitespace-nowrap">
                                     {formatDateI18n(item.date, lang)}
-                                    {!!item.is_modified && (
-                                        <span className="ml-2 px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded text-[8px] font-black uppercase" title="Modificado">
-                                            *
-                                        </span>
-                                    )}
                                 </td>
                                 <td className="px-6 py-4">
                                     <p className="text-sm font-bold text-slate-800 leading-none mb-1 cursor-pointer hover:text-emerald-600 transition-colors" onClick={() => onEdit(item)}>
@@ -134,6 +149,7 @@ const TransactionTable = ({
                                     <StatusBadge status={item.status} t={t} />
                                 </td>
                                 <td className="px-6 py-4 text-right">
+                                    <ConfirmButton item={item} onConfirm={onConfirm} t={t} />
                                     <button
                                         onClick={() => deleteTransaction(item.id)}
                                         className="opacity-0 group-hover:opacity-100 p-2 text-slate-300 hover:text-rose-500 transition-all cursor-pointer"

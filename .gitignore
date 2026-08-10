@@ -28,6 +28,18 @@ dist-ssr
 .env.local
 .env.*.local
 
+# Archivos personales de entorno del desarrollador (no son parte del producto)
+.ignore
+.opencodeignore
+CLAUDE.md
+opencode-env-setup.txt
+opencode-master-prompt-v2.txt
+.opencode/node_modules
+.opencode/bun.lock
+.opencode/package-lock.json
+.opencode/package.json
+.opencode/dcp.jsonc
+
 # Bases de datos y Storage
 *.db
 *.db-shm

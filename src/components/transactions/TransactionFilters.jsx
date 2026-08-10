@@ -11,8 +11,8 @@ const TransactionFilters = ({
     lang,
     t
 }) => {
-    const { filterType, searchQuery, filterMonth, filterYear, startDate, endDate } = filters;
-    const { setFilterType, setSearchQuery, setFilterMonth, setFilterYear, setStartDate, setEndDate } = setters;
+    const { type: filterType, status: filterStatus, search: searchQuery, month: filterMonth, year: filterYear, startDate, endDate } = filters;
+    const { setFilterType, setFilterStatus, setSearchQuery, setFilterMonth, setFilterYear, setStartDate, setEndDate } = setters;
 
     return (
         <div className="bg-white p-4 rounded-[2rem] border border-slate-200 shadow-sm space-y-4">
@@ -52,6 +52,17 @@ const TransactionFilters = ({
                         <option value="all">{t('all')}</option>
                         <option value="income">{t('income')}</option>
                         <option value="expense">{t('expense')}</option>
+                    </select>
+
+                    <select
+                        value={filterStatus}
+                        onChange={(e) => setFilterStatus(e.target.value)}
+                        className="p-2 bg-slate-50 border border-slate-200 rounded-xl text-[10px] font-black uppercase outline-none cursor-pointer hover:bg-slate-100 transition-colors"
+                    >
+                        <option value="all">{t('status')}</option>
+                        <option value="completed">{t('confirmed')}</option>
+                        <option value="planned">{t('pending')}</option>
+                        <option value="overdue">{t('overdue')}</option>
                     </select>
 
                     <select

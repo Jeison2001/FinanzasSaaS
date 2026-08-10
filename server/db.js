@@ -53,9 +53,20 @@ const initDB = async () => {
                 is_modified INTEGER DEFAULT 0,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 recurrence TEXT DEFAULT 'none',
+                series_id TEXT,
                 FOREIGN KEY (user_id) REFERENCES users (id)
             )
         `);
+
+        // Upgrade idempotente para BDs existentes: la columna series_id vincula
+        // cada ocurrencia generada con su serie (ancla = id de la transacción origen).
+        // Sin sistema de migraciones, ALTER TABLE con try/catch es el mecanismo.
+        try {
+            await db.execute('ALTER TABLE transactions ADD COLUMN series_id TEXT');
+            console.log("Schema upgrade: transactions.series_id añadido.");
+        } catch {
+            // Columna ya existente o BD recién creada — caso esperado, no es error.
+        }
 
         await db.execute(`
             CREATE TABLE IF NOT EXISTS user_settings (
@@ -83,16 +94,18 @@ const initDB = async () => {
             )
         `);
 
-        // Tabla para el Sistema de Trabajos en Segundo Plano (Queue)
+        // Presupuestos mensuales por categoría (una fila por categoría/mes/año)
         await db.execute(`
-            CREATE TABLE IF NOT EXISTS background_jobs (
+            CREATE TABLE IF NOT EXISTS budgets (
                 id TEXT PRIMARY KEY,
-                type TEXT NOT NULL,
-                payload TEXT NOT NULL,
-                status TEXT DEFAULT 'pending',
-                attempts INTEGER DEFAULT 0,
+                user_id TEXT NOT NULL,
+                category TEXT NOT NULL,
+                amount REAL NOT NULL,
+                month INTEGER NOT NULL,
+                year INTEGER NOT NULL,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                locked_until DATETIME
+                UNIQUE (user_id, category, month, year),
+                FOREIGN KEY (user_id) REFERENCES users (id)
             )
         `);
 
@@ -105,6 +118,17 @@ const initDB = async () => {
             CREATE INDEX IF NOT EXISTS idx_transactions_user_recurring 
             ON transactions (user_id, status, date) 
             WHERE recurrence != 'none' AND recurrence IS NOT NULL
+        `);
+
+        await db.execute(`
+            CREATE INDEX IF NOT EXISTS idx_transactions_series 
+            ON transactions (series_id) 
+            WHERE series_id IS NOT NULL
+        `);
+
+        await db.execute(`
+            CREATE INDEX IF NOT EXISTS idx_budgets_user_period 
+            ON budgets (user_id, month, year)
         `);
 
         console.log("Database schema initialized gracefully.");

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import axiosClient from '../api/axiosClient';
 import { useAuthStore } from '../store/useAuthStore';
 
-export const useNotifications = () => {
+export const useNotifications = (refreshKey = 0) => {
     const { isAuthenticated } = useAuthStore();
     const [notifications, setNotifications] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -38,7 +38,7 @@ export const useNotifications = () => {
         } else {
             setNotifications([]);
         }
-    }, [isAuthenticated]);
+    }, [isAuthenticated, refreshKey]);
 
     return {
         notifications,
