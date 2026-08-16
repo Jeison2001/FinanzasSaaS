@@ -74,8 +74,11 @@ export const resetPassword = async (req, res) => {
 
         const hashedPassword = await bcrypt.hash(password, 10);
 
+        // pwd_version + 1 invalida todos los tokens JWT emitidos con la
+        // contraseña anterior (escenario robo de cuenta: la víctima resetea
+        // y el atacante pierde el acceso inmediatamente).
         await db.execute({
-            sql: 'UPDATE users SET password_hash = ? WHERE id = ?',
+            sql: 'UPDATE users SET password_hash = ?, pwd_version = COALESCE(pwd_version, 0) + 1 WHERE id = ?',
             args: [hashedPassword, row.user_id]
         });
 

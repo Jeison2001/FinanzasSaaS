@@ -24,9 +24,19 @@ const initDB = async () => {
                 password_hash TEXT NOT NULL,
                 role TEXT DEFAULT 'client',
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                last_login_at DATETIME
+                last_login_at DATETIME,
+                pwd_version INTEGER DEFAULT 0
             )
         `);
+
+        // pwd_version: permite invalidar tokens JWT emitidos antes de un reset
+        // de contraseña sin cambiar la expiración global (365d por decisión de producto).
+        try {
+            await db.execute('ALTER TABLE users ADD COLUMN pwd_version INTEGER DEFAULT 0');
+            console.log("Schema upgrade: users.pwd_version añadido.");
+        } catch {
+            // Columna ya existente o BD recién creada — caso esperado, no es error.
+        }
 
         await db.execute(`
             CREATE TABLE IF NOT EXISTS user_notifications (

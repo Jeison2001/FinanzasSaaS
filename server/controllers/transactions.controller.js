@@ -12,7 +12,7 @@ import { addTransactionSchema } from '../schemas/transaction.schema.js';
  */
 export const getTransactions = async (req, res) => {
     const userId = req.user.id;
-    const limit = Math.min(parseInt(req.query.limit, 10) || 50, 200);
+    const limit = Math.max(1, Math.min(parseInt(req.query.limit, 10) || 50, 200));
     const offset = Math.max(parseInt(req.query.offset, 10) || 0, 0);
 
     const { type, status, search, month, year, startDate, endDate } = req.query;
@@ -61,7 +61,9 @@ export const getTransactions = async (req, res) => {
 
     try {
         const txResult = await db.execute({
-            sql: `SELECT * FROM transactions WHERE ${whereSql} ORDER BY date DESC LIMIT ? OFFSET ?`,
+            // Tiebreakers: sin ellos, filas con la misma fecha pueden duplicarse
+            // o saltarse entre páginas (series diarias, día de nómina).
+            sql: `SELECT * FROM transactions WHERE ${whereSql} ORDER BY date DESC, created_at DESC, id LIMIT ? OFFSET ?`,
             args: [...args, limit, offset]
         });
         const countResult = await db.execute({
@@ -152,11 +154,15 @@ export const getReports = async (req, res) => {
     const { month, year, startDate, endDate } = req.query;
 
     try {
+        const isDateStr = (s) => typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s);
+        const validStart = isDateStr(startDate);
+        const validEnd = isDateStr(endDate);
+
         let dateFilter = '';
         let filterArgs = [];
 
         // months from frontend are 0-indexed (Jan=0), SQL dates use 01–12
-        if (startDate && endDate) {
+        if (validStart && validEnd) {
             dateFilter = ' AND date >= ? AND date <= ?';
             filterArgs = [startDate, endDate];
         } else if (month !== undefined && month !== '' && year) {
@@ -183,7 +189,7 @@ export const getReports = async (req, res) => {
         const toStr = (dt) => `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
 
         let prevStart = null, prevEnd = null;
-        if (startDate && endDate) {
+        if (validStart && validEnd) {
             const start = toDate(startDate);
             const lengthDays = Math.round((toDate(endDate) - start) / dayMs) + 1;
             const prevStartD = new Date(start); prevStartD.setDate(prevStartD.getDate() - lengthDays);
@@ -275,18 +281,28 @@ export const createTransaction = async (req, res) => {
         // series_id = id propio; todas las ocurrencias generadas lo heredan.
         const seriesId = recurrence && recurrence !== 'none' ? id : null;
 
-        await db.execute({
-            sql: 'INSERT INTO transactions (id, user_id, type, category, amount, description, date, status, recurrence, series_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-            args: [id, userId, type, category, amount, description, date, status, recurrence, seriesId]
-        });
-
-        if (recurrence && recurrence !== 'none' && status === 'completed') {
-            await generateNextRecurrence({
-                date, recurrence,
-                user_id: userId,
-                type, category, amount, description,
-                series_id: seriesId
+        // Atómico: si el proceso muere entre INSERT y la generación de la
+        // siguiente ocurrencia, quedaría un ancla recurrente sin planned —
+        // y el CRON (que solo procesa planned) nunca regeneraría la serie.
+        const sqlTx = await db.transaction("write");
+        try {
+            await sqlTx.execute({
+                sql: 'INSERT INTO transactions (id, user_id, type, category, amount, description, date, status, recurrence, series_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                args: [id, userId, type, category, amount, description, date, status, recurrence, seriesId]
             });
+
+            if (recurrence && recurrence !== 'none' && status === 'completed') {
+                await generateNextRecurrence({
+                    date, recurrence,
+                    user_id: userId,
+                    type, category, amount, description,
+                    series_id: seriesId
+                }, sqlTx);
+            }
+            await sqlTx.commit();
+        } catch (txErr) {
+            await sqlTx.rollback();
+            throw txErr;
         }
 
         res.status(201).json({ id, type, category, amount, description, date, status, recurrence });
@@ -332,41 +348,51 @@ export const updateTransaction = async (req, res) => {
         // se convierte en ancla de una nueva serie (series_id = id propio).
         const seriesId = oldTx.series_id || id;
 
-        await db.execute({
-            sql: `
-                UPDATE transactions
-                SET type = ?, category = ?, amount = ?, description = ?, date = ?, status = ?, recurrence = ?, is_modified = 1, series_id = ?
-                WHERE id = ? AND user_id = ?
-            `,
-            args: [updatedType, updatedCategory, updatedAmount, updatedDescription, updatedDate, updatedStatus, updatedRecurrence, seriesId, id, userId]
-        });
-
-        const justCompleted = oldTx.status !== 'completed' && updatedStatus === 'completed';
-        const justMadeRecurring = oldTx.recurrence === 'none' && updatedRecurrence !== 'none';
-
-        if ((justCompleted || justMadeRecurring) && updatedStatus === 'completed' && updatedRecurrence !== 'none') {
-            await generateNextRecurrence({
-                date: updatedDate,
-                recurrence: updatedRecurrence,
-                user_id: userId,
-                type: updatedType,
-                category: updatedCategory,
-                amount: updatedAmount,
-                description: updatedDescription,
-                series_id: seriesId
+        // Atómico: UPDATE + purga de serie + generación de la siguiente
+        // ocurrencia en una sola transacción (mismo patrón que el CRON).
+        const sqlTx = await db.transaction("write");
+        try {
+            await sqlTx.execute({
+                sql: `
+                    UPDATE transactions
+                    SET type = ?, category = ?, amount = ?, description = ?, date = ?, status = ?, recurrence = ?, is_modified = 1, series_id = ?
+                    WHERE id = ? AND user_id = ?
+                `,
+                args: [updatedType, updatedCategory, updatedAmount, updatedDescription, updatedDate, updatedStatus, updatedRecurrence, seriesId, id, userId]
             });
+
+            const justCompleted = oldTx.status !== 'completed' && updatedStatus === 'completed';
+            const justMadeRecurring = oldTx.recurrence === 'none' && updatedRecurrence !== 'none';
+
+            if ((justCompleted || justMadeRecurring) && updatedStatus === 'completed' && updatedRecurrence !== 'none') {
+                await generateNextRecurrence({
+                    date: updatedDate,
+                    recurrence: updatedRecurrence,
+                    user_id: userId,
+                    type: updatedType,
+                    category: updatedCategory,
+                    amount: updatedAmount,
+                    description: updatedDescription,
+                    series_id: seriesId
+                }, sqlTx);
+            }
+            await sqlTx.commit();
+        } catch (txErr) {
+            await sqlTx.rollback();
+            throw txErr;
         }
 
-        res.json({ 
-            id, 
-            type: updatedType, 
-            category: updatedCategory, 
-            amount: updatedAmount, 
-            description: updatedDescription, 
-            date: updatedDate, 
-            status: updatedStatus, 
-            recurrence: updatedRecurrence, 
-            is_modified: 1 
+        res.json({
+            id,
+            type: updatedType,
+            category: updatedCategory,
+            amount: updatedAmount,
+            description: updatedDescription,
+            date: updatedDate,
+            status: updatedStatus,
+            recurrence: updatedRecurrence,
+            series_id: seriesId,
+            is_modified: 1
         });
     } catch (err) {
         logger.error({ err }, '[PUT /transactions] Error al actualizar transacción');
@@ -440,7 +466,8 @@ export const exportTransactions = async (req, res) => {
 
         res.setHeader('Content-Type', 'text/csv; charset=utf-8');
         res.setHeader('Content-Disposition', `attachment; filename="finanzassaa_export_${new Date().toISOString().split('T')[0]}.csv"`);
-        res.send([header, ...lines].join('\n'));
+        // BOM UTF-8: sin él, Excel/Windows interpreta el CSV como Latin-1 y rompe acentos
+        res.send('\uFEFF' + [header, ...lines].join('\n'));
     } catch (err) {
         logger.error({ err }, '[GET /transactions/export] Error al exportar CSV');
         res.status(500).json({ error: 'Failed to export transactions' });

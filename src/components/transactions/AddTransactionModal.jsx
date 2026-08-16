@@ -39,16 +39,16 @@ const AddTransactionModal = ({
         }
     }, [transactionToEdit]);
 
-    const handleAddTransaction = (e) => {
+    const handleAddTransaction = async (e) => {
         e.preventDefault();
 
         try {
-            if (transactionToEdit) {
-                editTransaction(transactionToEdit.id, formData);
-            } else {
-                addTransaction(formData);
-            }
-            setShowAddModal(false);
+            // El modal solo cierra si el servidor confirmó el guardado;
+            // en error, el toast notifica y el usuario puede corregir.
+            const res = transactionToEdit
+                ? await editTransaction(transactionToEdit.id, formData)
+                : await addTransaction(formData);
+            if (res?.ok !== false) setShowAddModal(false);
         } catch (error) {
             console.error('[AddTransactionModal] Error al procesar transacción:', error);
         }
@@ -173,6 +173,10 @@ const AddTransactionModal = ({
                             >
                                 <option value="completed">{t('confirmed')}</option>
                                 <option value="planned">{t('pending')}</option>
+                                {/* Editar una vencida: mostrar y conservar su estado real */}
+                                {transactionToEdit?.status === 'overdue' && (
+                                    <option value="overdue">{t('overdue')}</option>
+                                )}
                             </select>
                         </div>
                     </div>

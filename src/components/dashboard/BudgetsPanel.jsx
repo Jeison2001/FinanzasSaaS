@@ -29,15 +29,16 @@ const BudgetsPanel = ({ lang, currency, t }) => {
         setDraft(d);
     }, [budgets]);
 
-    // Solo categorías de gasto: las que tienen presupuesto o gasto real
+    // Todas las categorías de gasto siempre visibles: sin esto, un usuario
+    // nuevo (sin gasto ni presupuesto) no podía crear el primer presupuesto.
+    // La actividad solo decide el orden.
     const rows = categories.expense
         .map(cat => {
             const budget = parseFloat(draft[cat]) || 0;
             const spent = spentByCategory[cat] || 0;
-            return { cat, budget, spent, hasActivity: budget > 0 || spent > 0 };
+            return { cat, budget, spent };
         })
-        .filter(r => r.hasActivity)
-        .sort((a, b) => (b.spent - a.spent) || (b.budget - a.budget));
+        .sort((a, b) => (b.budget - a.budget) || (b.spent - a.spent) || a.cat.localeCompare(b.cat));
 
     const totalBudget = rows.reduce((acc, r) => acc + r.budget, 0);
     const totalSpent = rows.reduce((acc, r) => acc + r.spent, 0);
@@ -96,8 +97,6 @@ const BudgetsPanel = ({ lang, currency, t }) => {
                     <div className="flex items-center justify-center h-32">
                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-900"></div>
                     </div>
-                ) : rows.length === 0 ? (
-                    <div className="text-center py-10 text-xs font-bold text-slate-300">{t('noBudgetSet')}</div>
                 ) : (
                     <div className="space-y-5">
                         {rows.map(({ cat, budget, spent }) => {
@@ -154,7 +153,7 @@ const BudgetsPanel = ({ lang, currency, t }) => {
                 )}
             </div>
 
-            {rows.length > 0 && (
+            {(totalBudget > 0 || totalSpent > 0) && (
                 <div className="bg-slate-950 text-white p-6 rounded-[2rem] shadow-xl">
                     <div className="grid grid-cols-2 gap-4">
                         <div>

@@ -81,7 +81,7 @@ export const translationsEs = {
     dataResetSuccess: "Información del usuario reseteada con éxito.",
     logout: "Cerrar sesión",
     confirmTx: "Confirmar",
-    overdueWarning: "Tienes {amount} en pagos vencidos sin confirmar.",
+    overdueWarning: "Tienes {amount} en transacciones vencidas sin confirmar.",
     periodMonth: "Este mes",
     periodYear: "Este año",
     periodAll: "Todo",
@@ -122,5 +122,10 @@ export const translationsEs = {
     authForgotSuccess: "Si el email existe recibirás las instrucciones. Revisa también tu carpeta de spam.",
     authErrorGeneric: "Error al procesar la solicitud",
     currency: "Moneda",
-    currencyFixed: "Se fija al crear la cuenta (no se puede cambiar después)"
+    currencyFixed: "Se fija al crear la cuenta (no se puede cambiar después)",
+    loading: "Cargando...",
+    loadMore: "Cargar más",
+    deleteConfirm: "¿Eliminar esta transacción?",
+    deleteSeriesConfirm: "Esta transacción es el ancla de una serie recurrente: eliminarla cancelará también todas sus ocurrencias planificadas. ¿Continuar?",
+    goalMustBePositive: "La meta debe ser mayor que 0"
 };

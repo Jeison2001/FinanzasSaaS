@@ -1,6 +1,15 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from './useAuth';
 import axiosClient from '../api/axiosClient';
+import { useAppStore } from '../store/useAppStore';
+import { useTranslation } from '../locales';
+
+/** Notifica un error de API al usuario vía toast (visible en producción). */
+const notifyError = (err) => {
+    const { lang, pushToast } = useAppStore.getState();
+    const t = useTranslation(lang);
+    pushToast(err?.response?.data?.error || t('authErrorGeneric'), 'error');
+};
 
 /**
  * Gestiona el estado y las operaciones CRUD de transacciones.
@@ -74,9 +83,13 @@ export const useTransactions = (filters = {}) => {
             if (res.status === 201) {
                 await fetchTransactions(0, false, false);
                 triggerRefresh();
+                return { ok: true };
             }
+            return { ok: false };
         } catch (err) {
             console.error('Failed to add transaction:', err);
+            notifyError(err);
+            return { ok: false };
         }
     };
 
@@ -89,6 +102,7 @@ export const useTransactions = (filters = {}) => {
             }
         } catch (err) {
             console.error('Failed to delete transaction:', err);
+            notifyError(err);
         }
     };
 
@@ -99,9 +113,13 @@ export const useTransactions = (filters = {}) => {
                 const saved = res.data;
                 setTransactions(prev => prev.map(t => t.id === id ? saved : t));
                 triggerRefresh();
+                return { ok: true };
             }
+            return { ok: false };
         } catch (err) {
             console.error('Failed to edit transaction:', err);
+            notifyError(err);
+            return { ok: false };
         }
     };
 

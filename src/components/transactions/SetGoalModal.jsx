@@ -38,8 +38,13 @@ const SetGoalModal = ({
                     </div>
 
                     <button
-                        onClick={() => { saveSettings({ savings_goal: savingsGoal }); setShowGoalModal(false); }}
-                        className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black uppercase tracking-widest py-4 rounded-2xl transition-all shadow-xl shadow-emerald-100 cursor-pointer"
+                        onClick={async () => {
+                            const res = await saveSettings({ savings_goal: savingsGoal });
+                            if (res?.ok !== false) setShowGoalModal(false);
+                        }}
+                        disabled={!(savingsGoal > 0)}
+                        title={!(savingsGoal > 0) ? t('goalMustBePositive') : undefined}
+                        className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-black uppercase tracking-widest py-4 rounded-2xl transition-all shadow-xl shadow-emerald-100 cursor-pointer"
                     >
                         {t('save')}
                     </button>

@@ -16,6 +16,7 @@ import AuthCard from './components/auth/AuthCard';
 import AdminDashboard from './components/admin/AdminDashboard';
 import Header from './components/layout/Header';
 import NotificationBanner from './components/layout/NotificationBanner';
+import Toaster from './components/layout/Toaster';
 import KPICards from './components/dashboard/KPICards';
 import Sidebar from './components/dashboard/Sidebar';
 import BudgetsPanel from './components/dashboard/BudgetsPanel';
@@ -62,7 +63,12 @@ const App = () => {
   if (!isAuthenticated) return <AuthCard />;
 
   if (isAuthenticated && role === 'admin' && !forceClientView) {
-    return <AdminDashboard lang={lang} setLang={setLang} setForceClientView={setForceClientView} />;
+    return (
+      <>
+        <AdminDashboard lang={lang} setLang={setLang} setForceClientView={setForceClientView} saveSettings={saveSettings} />
+        <Toaster />
+      </>
+    );
   }
 
   return (
@@ -197,6 +203,8 @@ const App = () => {
       {showImportModal && (
         <ImportExportModal setShowModal={setShowImportModal} t={t} onImported={triggerRefresh} />
       )}
+
+      <Toaster />
     </div>
   );
 };

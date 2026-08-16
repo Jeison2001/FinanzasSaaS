@@ -32,7 +32,9 @@ export const updateTransactionSchema = z.object({
     amount: z.coerce.number().positive('Amount must be greater than 0').optional(),
     description: z.string().min(1, 'Description is required').optional(),
     date: dateLike.optional(),
-    status: z.enum(['planned', 'completed']).optional(),
+    // 'overdue' SOLO en update: editar una vencida no debe fallar con 400.
+    // En creación sigue rechazado — overdue lo produce el sistema.
+    status: z.enum(['planned', 'completed', 'overdue']).optional(),
     recurrence: z.enum(['none', 'daily', 'weekly', 'monthly', 'yearly']).optional()
 });
 

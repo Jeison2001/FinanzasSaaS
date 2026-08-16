@@ -23,6 +23,10 @@ import budgetRoutes from './routes/budgets.routes.js';
 
 
 const app = express();
+// Detrás de Vercel/Render el rate limiter keying por req.ip necesita confiar
+// en el proxy (X-Forwarded-For); sin esto, todos los usuarios comparten la IP
+// del proxy y el limiter de login provoca lockout global.
+app.set('trust proxy', 1);
 app.use(compression());
 
 // Configuración segura de CORS
@@ -55,7 +59,7 @@ app.use(cors({
 }));
 
 
-app.use(express.json());
+app.use(express.json({ limit: '600kb' }));
 
 
 // Routes
@@ -108,6 +112,12 @@ cron.schedule('0 0 * * *', async () => {
 const PORT = process.env.PORT;
 if (!PORT) {
     logger.fatal('FATAL ERROR: PORT is not defined in .env file.');
+    process.exit(1);
+}
+
+// Fail-fast: sin JWT_SECRET el server arrancaría y fallaría en el primer login
+if (!process.env.JWT_SECRET) {
+    logger.fatal('FATAL ERROR: JWT_SECRET is not defined in .env file.');
     process.exit(1);
 }
 

@@ -9,7 +9,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { LogOut, Users, Shield, LayoutDashboard, RefreshCw } from 'lucide-react';
 import { useTranslation } from '../../locales';
 
-const AdminDashboard = ({ lang, setLang, setForceClientView }) => {
+const AdminDashboard = ({ lang, setLang, setForceClientView, saveSettings }) => {
     const { token, logout } = useAuth();
     const [users, setUsers] = useState([]);
     const t = useTranslation(lang);
@@ -55,7 +55,7 @@ const AdminDashboard = ({ lang, setLang, setForceClientView }) => {
                     <div className="flex items-center gap-2">
                         <select
                             value={lang}
-                            onChange={(e) => setLang(e.target.value)}
+                            onChange={(e) => { setLang(e.target.value); if (saveSettings) saveSettings({ language: e.target.value }); }}
                             className="bg-slate-800 text-slate-300 text-[10px] font-black p-1.5 rounded-lg border border-slate-700 uppercase tracking-widest cursor-pointer hover:bg-slate-700 transition-colors mr-2 outline-none"
                         >
                             <option value="es">ES</option>

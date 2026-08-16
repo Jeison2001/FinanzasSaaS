@@ -72,7 +72,7 @@ Estos archivos concentran la mayor complejidad y son los más buscados:
 
 1. **Sin ORM / Sin migraciones**: Schema raw SQL en `db.js`. Cambios de schema: `CREATE TABLE IF NOT EXISTS` + `ALTER TABLE` idempotente en `initDB()` (no destructivos).
 3. **Sin router frontend**: Navegación controlada por `activeTab` en `useAppStore`. No usar react-router.
-4. **Sin tests**: Validar cambios manualmente o con `node server/smoke-test.mjs` (requiere server en :3999).
+4. **Tests**: suites en `server/tests/` — `npm test` (unitarios + integración; la integración levanta su propio server en :3998). Smoke adicional: `node server/smoke-test.mjs` (requiere server en :3999).
 5. **App.css es dead code**: No editar. Tailwind v4 se importa en `index.css`.
 6. **JWT expira en 365 días**: Riesgo de seguridad conocido. No cambiar sin análisis de impacto.
 7. **Modelo de transacciones**: `planned` → `overdue` → `completed`. Nada se auto-confirma. Series recurrentes vía `series_id` (ancla = transacción origen): quitar recurrencia purga planificadas; borrar ancla cancela la serie.
@@ -89,7 +89,7 @@ Antes de buscar manualmente en el codebase, verifica si existe una Skill que cub
 |---|---|
 | `db-schema` | Tablas, columnas, relaciones, server/db.js |
 | `controllers` | 5 controllers, endpoints, lógica de negocio |
-| `zod-contracts` | 4 schemas Zod, validación de API |
+| `zod-contracts` | 6 schemas Zod, validación de API |
 | `zustand-stores` | 2 stores, estado global frontend |
 | `react-hooks` | 6 hooks, data fetching, filtering |
 | `axios-client` | HTTP singleton, interceptors, auth |

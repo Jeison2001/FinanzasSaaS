@@ -11,3 +11,15 @@ export const authLimiter = rateLimit({
     standardHeaders: true,
     legacyHeaders: false,
 });
+
+/**
+ * Limiter laxo para endpoints costosos (parse CSV).
+ * 30 importaciones por minuto por IP.
+ */
+export const importLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 30,
+    message: { error: 'Demasiadas importaciones seguidas. Espera un minuto.' },
+    standardHeaders: true,
+    legacyHeaders: false,
+});

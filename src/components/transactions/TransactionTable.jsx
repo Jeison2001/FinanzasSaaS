@@ -54,6 +54,14 @@ const TransactionTable = ({
         return <EmptyState setShowAddModal={setShowAddModal} t={t} />;
     }
 
+    // Confirmación: borrar el ancla de una serie cancela todas sus ocurrencias
+    // planificadas — un misclick no debe destruir la serie sin aviso.
+    const handleDelete = (item) => {
+        const isAnchor = item.series_id && item.series_id === item.id;
+        const msg = isAnchor ? t('deleteSeriesConfirm') : t('deleteConfirm');
+        if (window.confirm(msg)) deleteTransaction(item.id);
+    };
+
     return (
         <div className="bg-white rounded-[2rem] border border-slate-200 overflow-hidden shadow-sm">
 
@@ -87,7 +95,7 @@ const TransactionTable = ({
 
                         <ConfirmButton item={item} onConfirm={onConfirm} t={t} />
                         <button
-                            onClick={() => deleteTransaction(item.id)}
+                            onClick={() => handleDelete(item)}
                             className="opacity-0 group-hover:opacity-100 p-1.5 text-slate-300 hover:text-rose-500 transition-all cursor-pointer shrink-0"
                         >
                             <Trash2 size={14} />
@@ -151,7 +159,7 @@ const TransactionTable = ({
                                 <td className="px-6 py-4 text-right">
                                     <ConfirmButton item={item} onConfirm={onConfirm} t={t} />
                                     <button
-                                        onClick={() => deleteTransaction(item.id)}
+                                        onClick={() => handleDelete(item)}
                                         className="opacity-0 group-hover:opacity-100 p-2 text-slate-300 hover:text-rose-500 transition-all cursor-pointer"
                                     >
                                         <Trash2 size={16} />

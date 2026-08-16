@@ -81,7 +81,7 @@ export const translationsCa = {
     dataResetSuccess: "Informació de l'usuari resetejada amb èxit.",
     logout: "Tancar sessió",
     confirmTx: "Confirmar",
-    overdueWarning: "Tens {amount} en pagaments vençuts sense confirmar.",
+    overdueWarning: "Tens {amount} en transaccions vençudes sense confirmar.",
     periodMonth: "Aquest mes",
     periodYear: "Aquest any",
     periodAll: "Tot",
@@ -122,5 +122,10 @@ export const translationsCa = {
     authForgotSuccess: "Si el correu existeix rebràs les instruccions. Revisa també la carpeta de spam.",
     authErrorGeneric: "Error en processar la sol·licitud",
     currency: "Moneda",
-    currencyFixed: "Es fixa en crear el compte (no es pot canviar després)"
+    currencyFixed: "Es fixa en crear el compte (no es pot canviar després)",
+    loading: "Carregant...",
+    loadMore: "Carregar més",
+    deleteConfirm: "Eliminar aquesta transacció?",
+    deleteSeriesConfirm: "Aquesta transacció és l'àncora d'una sèrie recurrent: eliminar-la cancel·larà també totes les seves ocurrències planificades. Continuar?",
+    goalMustBePositive: "L'objectiu ha de ser major que 0"
 };

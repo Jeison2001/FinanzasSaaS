@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import axiosClient from '../api/axiosClient';
 import { useAuth } from './useAuth';
+import { useAppStore } from '../store/useAppStore';
+import { useTranslation } from '../locales';
 
 /**
  * Gestión de presupuestos mensuales por categoría.
@@ -34,9 +36,12 @@ export const useBudgets = (month, year) => {
             if (res.status === 200) {
                 setBudgets(items.filter(i => i.amount > 0));
             }
-            return { ok: true };
+            return { ok: res.status === 200 };
         } catch (err) {
             console.error('Failed to save budgets:', err);
+            const { lang, pushToast } = useAppStore.getState();
+            const t = useTranslation(lang);
+            pushToast(err?.response?.data?.error || t('authErrorGeneric'), 'error');
             return { ok: false, error: err.response?.data?.error || 'Failed to save budgets' };
         }
     };

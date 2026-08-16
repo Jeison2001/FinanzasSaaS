@@ -5,6 +5,7 @@
 import { useEffect, useCallback } from 'react';
 import axiosClient from '../api/axiosClient';
 import { useAppStore } from '../store/useAppStore';
+import { useTranslation } from '../locales';
 
 export const useSettings = (isAuthenticated) => {
     const { setLang, setCurrency, setSavingsGoal } = useAppStore();
@@ -28,7 +29,8 @@ export const useSettings = (isAuthenticated) => {
         loadSettings();
     }, [isAuthenticated]);
 
-    // Función para persistir cualquier cambio en la BD
+    // Función para persistir cualquier cambio en la BD. Devuelve {ok} para
+    // que la UI no cierre el modal hasta confirmar el guardado.
     const saveSettings = useCallback(async (patch) => {
         try {
             // Leemos el estado actual del store para completar los campos requeridos
@@ -38,8 +40,13 @@ export const useSettings = (isAuthenticated) => {
                 currency: patch.currency ?? currency,
                 language: patch.language ?? lang,
             });
+            return { ok: true };
         } catch (err) {
             console.error('[useSettings] Error al guardar preferencias:', err?.response?.data ?? err.message);
+            const { lang: curLang, pushToast } = useAppStore.getState();
+            const t = useTranslation(curLang);
+            pushToast(err?.response?.data?.error || t('authErrorGeneric'), 'error');
+            return { ok: false };
         }
     }, []);
 

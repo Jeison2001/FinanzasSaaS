@@ -37,7 +37,7 @@ export const register = async (req, res) => {
             args: [id, currency]
         });
 
-        const token = jwt.sign({ id, email: normalizedEmail, role: userRole }, SECRET_KEY, { expiresIn: '365d' });
+        const token = jwt.sign({ id, email: normalizedEmail, role: userRole, pwd_version: 0 }, SECRET_KEY, { expiresIn: '365d' });
         res.json({ token, role: userRole });
     } catch (err) {
         logger.error({ err }, 'Registration failed');
@@ -71,7 +71,7 @@ export const login = async (req, res) => {
             args: [user.id]
         });
 
-        const token = jwt.sign({ id: user.id, email: user.email, role: user.role }, SECRET_KEY, { expiresIn: '365d' });
+        const token = jwt.sign({ id: user.id, email: user.email, role: user.role, pwd_version: user.pwd_version || 0 }, SECRET_KEY, { expiresIn: '365d' });
         res.json({ token, role: user.role });
     } catch (err) {
         logger.error({ err }, 'Login failed');

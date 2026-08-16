@@ -81,7 +81,7 @@ export const translationsEn = {
     dataResetSuccess: "User data successfully reset.",
     logout: "Log out",
     confirmTx: "Confirm",
-    overdueWarning: "You have {amount} in overdue payments not yet confirmed.",
+    overdueWarning: "You have {amount} in overdue transactions not yet confirmed.",
     periodMonth: "This month",
     periodYear: "This year",
     periodAll: "All",
@@ -122,5 +122,10 @@ export const translationsEn = {
     authForgotSuccess: "If the email exists you will receive the instructions. Also check your spam folder.",
     authErrorGeneric: "Error processing the request",
     currency: "Currency",
-    currencyFixed: "Set when the account is created (cannot be changed later)"
+    currencyFixed: "Set when the account is created (cannot be changed later)",
+    loading: "Loading...",
+    loadMore: "Load more",
+    deleteConfirm: "Delete this transaction?",
+    deleteSeriesConfirm: "This transaction is the anchor of a recurring series: deleting it will also cancel all its planned occurrences. Continue?",
+    goalMustBePositive: "The goal must be greater than 0"
 };

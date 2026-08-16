@@ -11,7 +11,9 @@ const periodOptions = [
 const KPICards = ({ stats, lang, currency, t, period, onPeriodChange }) => {
     // Calculate net savings
     const netSavings = stats.plannedIncome - stats.plannedExpense;
-    const hasOverdue = stats.overdueExpense > 0;
+    // El aviso cubre gastos E ingresos vencidos (una nómina vencida también importa)
+    const overdueTotal = (stats.overdueExpense || 0) + (stats.overdueIncome || 0);
+    const hasOverdue = overdueTotal > 0;
 
     return (
         <section className="space-y-3">
@@ -20,7 +22,7 @@ const KPICards = ({ stats, lang, currency, t, period, onPeriodChange }) => {
                 <div className="bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3 flex items-center gap-3 shadow-sm">
                     <AlertCircle size={18} className="text-amber-600 shrink-0" />
                     <p className="text-sm font-bold text-amber-800">
-                        {t('overdueWarning').replace('{amount}', formatCurrency(stats.overdueExpense, lang, currency))}
+                        {t('overdueWarning').replace('{amount}', formatCurrency(overdueTotal, lang, currency))}
                     </p>
                 </div>
             )}
