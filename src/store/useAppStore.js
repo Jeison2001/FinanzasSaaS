@@ -5,6 +5,8 @@ export const useAppStore = create((set) => ({
     currency: 'EUR',
     savingsGoal: 10000,
     activeTab: 'transactions',
+    timezone: null, // IANA del dispositivo; el CRON la usa para el "hoy" del usuario
+    setTimezone: (timezone) => set({ timezone }),
     // Canal de errores visible al usuario: los hooks notifican aquí y el
     // Toaster los renderiza (console.error se elimina del bundle de producción).
     toasts: [],

@@ -75,6 +75,7 @@ export const translationsCa = {
     noResultsDesc: "No hi ha transaccions per al període seleccionat. Prova un rang diferent o neteja els filtres.",
     action_dismiss: "Descartar",
     notif_recurring_processed: "S'han generat les teves transaccions recurrents. Revisa els pagaments vençuts pendents de confirmar.",
+    notif_recurring_truncated: "Tens moltes transaccions recurrents pendents: les seguirem processant automàticament per parts.",
     role: "Rol",
     resetData: "Netejar Dades",
     resetConfirm: "Estàs segur que vols netejar tota la informació d'aquest usuari? Aquesta acció és irreversible i eliminarà totes les seves transaccions i notificacions.",

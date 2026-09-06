@@ -28,9 +28,16 @@ export const useStats = (refreshTrigger, savingsGoal, mode = 'month', month = ''
 
         const fetchStats = async () => {
             try {
+                // Mes/año calculados en el DISPOSITIVO del usuario: si el server
+                // vive en otra zona horaria, "este mes" debe ser el suyo.
+                const now = new Date();
                 const params = new URLSearchParams({ mode });
-                if (month !== '') params.append('month', month);
-                if (year !== '') params.append('year', year);
+                if (mode === 'month') {
+                    params.append('month', month !== '' ? month : now.getMonth());
+                    params.append('year', year !== '' ? year : now.getFullYear());
+                } else if (mode === 'year') {
+                    params.append('year', year !== '' ? year : now.getFullYear());
+                }
 
                 const res = await axiosClient.get(`/transactions/stats?${params.toString()}`);
                 const totals = res.data;

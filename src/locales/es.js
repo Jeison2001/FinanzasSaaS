@@ -75,6 +75,7 @@ export const translationsEs = {
     noResultsDesc: "No hay transacciones para el período seleccionado. Prueba con un rango diferente o limpia los filtros.",
     action_dismiss: "Descartar",
     notif_recurring_processed: "Se han generado tus transacciones recurrentes. Revisa los pagos vencidos pendientes de confirmar.",
+    notif_recurring_truncated: "Tienes muchas transacciones recurrentes pendientes: las seguiremos procesando automáticamente por partes.",
     role: "Rol",
     resetData: "Limpiar Datos",
     resetConfirm: "¿Estás seguro de que deseas limpiar toda la información de este usuario? Esta acción es irreversible y eliminará todas sus transacciones y notificaciones.",

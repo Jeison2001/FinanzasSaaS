@@ -75,8 +75,10 @@ Estos archivos concentran la mayor complejidad y son los más buscados:
 4. **Tests**: suites en `server/tests/` — `npm test` (unitarios + integración; la integración levanta su propio server en :3998). Smoke adicional: `node server/smoke-test.mjs` (requiere server en :3999).
 5. **App.css es dead code**: No editar. Tailwind v4 se importa en `index.css`.
 6. **JWT expira en 365 días**: Riesgo de seguridad conocido. No cambiar sin análisis de impacto.
-7. **Modelo de transacciones**: `planned` → `overdue` → `completed`. Nada se auto-confirma. Series recurrentes vía `series_id` (ancla = transacción origen): quitar recurrencia purga planificadas; borrar ancla cancela la serie.
+7. **Modelo de transacciones**: `planned` → `overdue` → `completed`. Nada se auto-confirma. Series recurrentes vía `series_id` (ancla = transacción origen): quitar recurrencia purga planificadas; borrar ancla cancela la serie. Confirmar una `overdue` NO genera ocurrencia (el CRON ya la creó); solo una `planned` la genera al confirmarse.
 8. **Zod defaults en PUT**: Nunca usar `.partial()` sobre schemas con `.default()` — el default se inyecta en actualizaciones parciales y corrompe datos (ver `updateTransactionSchema`).
+9. **Dinero en céntimos**: toda aritmética usa `amount_cents` (INTEGER, vía `server/utils/money.utils.js`); `amount` REAL es dual-write solo para display/CSV. Nunca sumes `amount`.
+10. **Timezone**: `user_settings.timezone` (IANA) la sincroniza el frontend; el CRON horario calcula el "hoy" de cada usuario con `todayInTimeZone` (`date.utils.js`).
 
 ---
 

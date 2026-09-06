@@ -37,9 +37,10 @@ npm run build && npm run start
 | Método | Ruta | Descripción |
 |---|---|---|
 | POST | `/api/auth/register` · `/login` · `/forgot-password` · `/reset-password` | Auth |
-| GET/POST | `/api/transactions` | Listar (paginado) / crear transacción |
+| GET/POST | `/api/transactions` | Listar (paginado, filtrado server-side) / crear transacción |
 | PUT/DELETE | `/api/transactions/:id` | Editar / eliminar (borrar el ancla cancela la serie) |
-| GET | `/api/transactions/stats?mode=month\|year\|all` | KPIs por período |
+| POST | `/api/transactions/confirm-overdue` | Confirmación en bloque de vencidas |
+| GET | `/api/transactions/stats?mode=month\|year\|all` | KPIs por período (aritmética en céntimos, exacta) |
 | GET | `/api/transactions/reports?month&year&startDate&endDate` | Reportes + comparativa vs período anterior |
 | GET/POST | `/api/transactions/export` · `/api/transactions/import` | CSV (export/import) |
 | GET/PUT | `/api/budgets?month&year` | Presupuestos mensuales por categoría |
@@ -51,6 +52,8 @@ npm run build && npm run start
 - `status`: `completed` (confirmado), `planned` (planificado), `overdue` (vencido sin confirmar).
 - Las recurrencias (`daily|weekly|monthly|yearly`) generan la siguiente ocurrencia como `planned`; al vencer pasan a `overdue` — **nada se confirma automáticamente**.
 - `series_id` vincula cada ocurrencia con su ancla: quitar la recurrencia purga las planificadas restantes; borrar el ancla cancela la serie.
+- **Dinero en céntimos**: `amount_cents` (INTEGER) es la fuente para toda aritmética (exacta, sin drift float); `amount` REAL se mantiene dual-write por compatibilidad de display/CSV.
+- **Timezone por usuario**: el dispositivo la sincroniza en settings; el CRON horario usa la fecha local de cada usuario para marcar vencidos.
 - Sin migraciones: los cambios de schema en `server/db.js` se aplican con `CREATE TABLE IF NOT EXISTS` y `ALTER TABLE` idempotente en el arranque.
 
 ## Scripts útiles

@@ -75,6 +75,7 @@ export const translationsEn = {
     noResultsDesc: "No transactions found for the selected period. Try a different range or clear the filters.",
     action_dismiss: "Dismiss",
     notif_recurring_processed: "Your recurring transactions have been generated. Review the overdue payments waiting for confirmation.",
+    notif_recurring_truncated: "You have many pending recurring transactions: we will keep processing them automatically in batches.",
     role: "Role",
     resetData: "Clear Data",
     resetConfirm: "Are you sure you want to clear all information for this user? This action is irreversible and will delete all their transactions and notifications.",

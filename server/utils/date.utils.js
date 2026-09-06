@@ -6,6 +6,24 @@ export const localToday = () => {
     return `${y}-${m}-${d}`;
 };
 
+/**
+ * Fecha de HOY en la zona horaria del usuario (IANA, p.ej. 'America/Bogota').
+ * 'en-CA' formatea como YYYY-MM-DD directamente. Si la zona es inválida o
+ * el entorno no la soporta, cae al hoy local del server.
+ */
+export const todayInTimeZone = (tz) => {
+    try {
+        return new Intl.DateTimeFormat('en-CA', {
+            timeZone: tz,
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit'
+        }).format(new Date());
+    } catch {
+        return localToday();
+    }
+};
+
 export const fmtLocalDate = (dateObj) => {
     const y = dateObj.getFullYear();
     const m = String(dateObj.getMonth() + 1).padStart(2, '0');

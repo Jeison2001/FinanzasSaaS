@@ -4,6 +4,7 @@ import logger from '../logger.js';
 import { generateNextRecurrence } from '../services/recurrence.service.js';
 import { addTransactionSchema } from '../schemas/transaction.schema.js';
 import { normalizeText } from '../utils/text.utils.js';
+import { toCents, fromCents } from '../utils/money.utils.js';
 
 /**
  * GET /transactions — paginado y filtrado server-side.
@@ -112,16 +113,16 @@ export const getStats = async (req, res) => {
 
     try {
         const statsResult = await db.execute({
-            // ROUND a 2 decimales: amount es REAL (float) y las sumas acumulan
-            // drift (0.1+0.2=0.30000000000000004) visible en los KPIs.
+            // La aritmética se hace en céntimos (INTEGER, exacta) y se divide
+            // al final: sin drift float en ningún KPI.
             sql: `
                 SELECT
-                    ROUND(SUM(CASE WHEN type = 'income' AND status = 'completed' THEN amount ELSE 0 END), 2) as actualIncome,
-                    ROUND(SUM(CASE WHEN type = 'expense' AND status = 'completed' THEN amount ELSE 0 END), 2) as actualExpense,
-                    ROUND(SUM(CASE WHEN type = 'income' AND status = 'planned' THEN amount ELSE 0 END), 2) as plannedIncome,
-                    ROUND(SUM(CASE WHEN type = 'expense' AND status = 'planned' THEN amount ELSE 0 END), 2) as plannedExpense,
-                    ROUND(SUM(CASE WHEN type = 'income' AND status = 'overdue' THEN amount ELSE 0 END), 2) as overdueIncome,
-                    ROUND(SUM(CASE WHEN type = 'expense' AND status = 'overdue' THEN amount ELSE 0 END), 2) as overdueExpense
+                    SUM(CASE WHEN type = 'income' AND status = 'completed' THEN amount_cents ELSE 0 END) as actualIncome,
+                    SUM(CASE WHEN type = 'expense' AND status = 'completed' THEN amount_cents ELSE 0 END) as actualExpense,
+                    SUM(CASE WHEN type = 'income' AND status = 'planned' THEN amount_cents ELSE 0 END) as plannedIncome,
+                    SUM(CASE WHEN type = 'expense' AND status = 'planned' THEN amount_cents ELSE 0 END) as plannedExpense,
+                    SUM(CASE WHEN type = 'income' AND status = 'overdue' THEN amount_cents ELSE 0 END) as overdueIncome,
+                    SUM(CASE WHEN type = 'expense' AND status = 'overdue' THEN amount_cents ELSE 0 END) as overdueExpense
                 FROM transactions
                 WHERE user_id = ?${dateFilter}
             `,
@@ -132,8 +133,8 @@ export const getStats = async (req, res) => {
         const lifetimeResult = await db.execute({
             sql: `
                 SELECT
-                    ROUND(SUM(CASE WHEN type = 'income' AND status = 'completed' THEN amount ELSE 0 END), 2) as lifetimeIncome,
-                    ROUND(SUM(CASE WHEN type = 'expense' AND status = 'completed' THEN amount ELSE 0 END), 2) as lifetimeExpense
+                    SUM(CASE WHEN type = 'income' AND status = 'completed' THEN amount_cents ELSE 0 END) as lifetimeIncome,
+                    SUM(CASE WHEN type = 'expense' AND status = 'completed' THEN amount_cents ELSE 0 END) as lifetimeExpense
                 FROM transactions
                 WHERE user_id = ?
             `,
@@ -143,13 +144,13 @@ export const getStats = async (req, res) => {
         const row = statsResult.rows[0] || {};
         const lRow = lifetimeResult.rows[0] || {};
         res.json({
-            actualIncome: parseFloat(row.actualIncome) || 0,
-            actualExpense: parseFloat(row.actualExpense) || 0,
-            plannedIncome: parseFloat(row.plannedIncome) || 0,
-            plannedExpense: parseFloat(row.plannedExpense) || 0,
-            overdueIncome: parseFloat(row.overdueIncome) || 0,
-            overdueExpense: parseFloat(row.overdueExpense) || 0,
-            lifetimeBalance: (parseFloat(lRow.lifetimeIncome) || 0) - (parseFloat(lRow.lifetimeExpense) || 0)
+            actualIncome: fromCents(row.actualIncome),
+            actualExpense: fromCents(row.actualExpense),
+            plannedIncome: fromCents(row.plannedIncome),
+            plannedExpense: fromCents(row.plannedExpense),
+            overdueIncome: fromCents(row.overdueIncome),
+            overdueExpense: fromCents(row.overdueExpense),
+            lifetimeBalance: fromCents((Number(lRow.lifetimeIncome) || 0) - (Number(lRow.lifetimeExpense) || 0))
         });
     } catch (err) {
         logger.error({ err }, '[GET /transactions/stats] Error al calcular KPIs');
@@ -220,27 +221,27 @@ export const getReports = async (req, res) => {
         if (prevStart && prevEnd) {
             const prevArgs = [userId, prevStart, prevEnd];
             const prevExpensesRes = await db.execute({
-                sql: `SELECT category, ROUND(SUM(amount), 2) as total FROM transactions WHERE user_id = ? AND type = 'expense' AND status != 'planned' AND date >= ? AND date <= ? GROUP BY category`,
+                sql: `SELECT category, SUM(amount_cents) as total_cents FROM transactions WHERE user_id = ? AND type = 'expense' AND status != 'planned' AND date >= ? AND date <= ? GROUP BY category`,
                 args: prevArgs
             });
-            prevExpensesRes.rows.forEach(r => prevExpensesByCategory[r.category] = parseFloat(r.total));
+            prevExpensesRes.rows.forEach(r => prevExpensesByCategory[r.category] = fromCents(r.total_cents));
 
             const prevIncomesRes = await db.execute({
-                sql: `SELECT category, ROUND(SUM(amount), 2) as total FROM transactions WHERE user_id = ? AND type = 'income' AND status != 'planned' AND date >= ? AND date <= ? GROUP BY category`,
+                sql: `SELECT category, SUM(amount_cents) as total_cents FROM transactions WHERE user_id = ? AND type = 'income' AND status != 'planned' AND date >= ? AND date <= ? GROUP BY category`,
                 args: prevArgs
             });
-            prevIncomesRes.rows.forEach(r => prevIncomesBySource[r.category] = parseFloat(r.total));
+            prevIncomesRes.rows.forEach(r => prevIncomesBySource[r.category] = fromCents(r.total_cents));
         }
 
         const expensesRes = await db.execute({
-            sql: `SELECT category, ROUND(SUM(amount), 2) as total FROM transactions WHERE user_id = ? AND type = 'expense' AND status != 'planned'${dateFilter} GROUP BY category`,
+            sql: `SELECT category, SUM(amount_cents) as total_cents FROM transactions WHERE user_id = ? AND type = 'expense' AND status != 'planned'${dateFilter} GROUP BY category`,
             args: queryArgs
         });
         const expensesByCategory = {};
-        expensesRes.rows.forEach(r => expensesByCategory[r.category] = parseFloat(r.total));
+        expensesRes.rows.forEach(r => expensesByCategory[r.category] = fromCents(r.total_cents));
 
         const incomesRes = await db.execute({
-            sql: `SELECT category, ROUND(SUM(amount), 2) as total FROM transactions WHERE user_id = ? AND type = 'income' AND status != 'planned'${dateFilter} GROUP BY category`,
+            sql: `SELECT category, SUM(amount_cents) as total_cents FROM transactions WHERE user_id = ? AND type = 'income' AND status != 'planned'${dateFilter} GROUP BY category`,
             args: queryArgs
         });
         const incomesBySource = {};
@@ -252,8 +253,8 @@ export const getReports = async (req, res) => {
             sql: `
                 SELECT
                     substr(date, 1, 7) as month,
-                    ROUND(SUM(CASE WHEN type='income' THEN amount ELSE 0 END), 2) as incomes,
-                    ROUND(SUM(CASE WHEN type='expense' THEN amount ELSE 0 END), 2) as expenses
+                    SUM(CASE WHEN type='income' THEN amount_cents ELSE 0 END) as incomes_cents,
+                    SUM(CASE WHEN type='expense' THEN amount_cents ELSE 0 END) as expenses_cents
                 FROM transactions
                 WHERE user_id = ? AND status != 'planned'${dateFilter}
                 GROUP BY month
@@ -266,8 +267,8 @@ export const getReports = async (req, res) => {
         const trendData = trendRes.rows
             .map(r => ({
                 name: r.month,
-                incomes: parseFloat(r.incomes),
-                expenses: parseFloat(r.expenses)
+                incomes: fromCents(r.incomes_cents),
+                expenses: fromCents(r.expenses_cents)
             }));
 
         if (!filterArgs.length) trendData.reverse();
@@ -294,9 +295,10 @@ export const createTransaction = async (req, res) => {
         // y el CRON (que solo procesa planned) nunca regeneraría la serie.
         const sqlTx = await db.transaction("write");
         try {
+            // Dual-write: amount (display/compat) + amount_cents (aritmética exacta)
             await sqlTx.execute({
-                sql: 'INSERT INTO transactions (id, user_id, type, category, amount, description, description_norm, date, status, recurrence, series_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-                args: [id, userId, type, category, amount, description, normalizeText(description), date, status, recurrence, seriesId]
+                sql: 'INSERT INTO transactions (id, user_id, type, category, amount, amount_cents, description, description_norm, date, status, recurrence, series_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                args: [id, userId, type, category, amount, toCents(amount), description, normalizeText(description), date, status, recurrence, seriesId]
             });
 
             if (recurrence && recurrence !== 'none' && status === 'completed') {
@@ -363,10 +365,10 @@ export const updateTransaction = async (req, res) => {
             await sqlTx.execute({
                 sql: `
                     UPDATE transactions
-                    SET type = ?, category = ?, amount = ?, description = ?, description_norm = ?, date = ?, status = ?, recurrence = ?, is_modified = 1, series_id = ?
+                    SET type = ?, category = ?, amount = ?, amount_cents = ?, description = ?, description_norm = ?, date = ?, status = ?, recurrence = ?, is_modified = 1, series_id = ?
                     WHERE id = ? AND user_id = ?
                 `,
-                args: [updatedType, updatedCategory, updatedAmount, updatedDescription, normalizeText(updatedDescription), updatedDate, updatedStatus, updatedRecurrence, seriesId, id, userId]
+                args: [updatedType, updatedCategory, updatedAmount, toCents(updatedAmount), updatedDescription, normalizeText(updatedDescription), updatedDate, updatedStatus, updatedRecurrence, seriesId, id, userId]
             });
 
             // Solo una planned genera la siguiente ocurrencia al confirmarse.
@@ -530,14 +532,15 @@ export const importTransactions = async (req, res) => {
         // Filas fuera del límite de 1000: reportadas, no descartadas en silencio
         const skipped = rawLines.length - startIdx - rows.length;
 
-        // Dedupe: clave (fecha|tipo|monto|descripción) contra la BD del usuario
-        // y dentro del propio lote — reimportar el mismo archivo no duplica datos.
+        // Dedupe: clave (fecha|tipo|céntimos|descripción) contra la BD del
+        // usuario y dentro del propio lote — reimportar el mismo archivo no
+        // duplica datos. Céntimos (no float) para claves exactas.
         const existingRes = await db.execute({
-            sql: 'SELECT date, type, amount, description FROM transactions WHERE user_id = ?',
+            sql: 'SELECT date, type, amount_cents, description FROM transactions WHERE user_id = ?',
             args: [userId]
         });
         const existingKeys = new Set(
-            existingRes.rows.map(r => `${r.date}|${r.type}|${r.amount}|${r.description}`)
+            existingRes.rows.map(r => `${r.date}|${r.type}|${r.amount_cents}|${r.description}`)
         );
         const batchKeys = new Set();
 
@@ -554,7 +557,7 @@ export const importTransactions = async (req, res) => {
                 continue;
             }
 
-            const dedupeKey = `${parsed.data.date}|${parsed.data.type}|${parsed.data.amount}|${parsed.data.description}`;
+            const dedupeKey = `${parsed.data.date}|${parsed.data.type}|${toCents(parsed.data.amount)}|${parsed.data.description}`;
             if (existingKeys.has(dedupeKey) || batchKeys.has(dedupeKey)) {
                 duplicates++;
                 continue;
@@ -563,8 +566,8 @@ export const importTransactions = async (req, res) => {
             const id = uuidv4();
             const seriesId = parsed.data.recurrence !== 'none' ? id : null;
             await db.execute({
-                sql: 'INSERT INTO transactions (id, user_id, type, category, amount, description, description_norm, date, status, recurrence, series_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-                args: [id, userId, parsed.data.type, parsed.data.category, parsed.data.amount, parsed.data.description, normalizeText(parsed.data.description), parsed.data.date, parsed.data.status, parsed.data.recurrence, seriesId]
+                sql: 'INSERT INTO transactions (id, user_id, type, category, amount, amount_cents, description, description_norm, date, status, recurrence, series_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                args: [id, userId, parsed.data.type, parsed.data.category, parsed.data.amount, toCents(parsed.data.amount), parsed.data.description, normalizeText(parsed.data.description), parsed.data.date, parsed.data.status, parsed.data.recurrence, seriesId]
             });
             batchKeys.add(dedupeKey);
             imported++;

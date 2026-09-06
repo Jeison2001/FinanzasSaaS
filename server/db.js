@@ -57,6 +57,7 @@ const initDB = async () => {
                 type TEXT NOT NULL,
                 category TEXT NOT NULL,
                 amount REAL NOT NULL,
+                amount_cents INTEGER,
                 description TEXT,
                 date TEXT NOT NULL,
                 status TEXT NOT NULL,
@@ -64,9 +65,31 @@ const initDB = async () => {
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 recurrence TEXT DEFAULT 'none',
                 series_id TEXT,
+                description_norm TEXT,
                 FOREIGN KEY (user_id) REFERENCES users (id)
             )
         `);
+
+        // amount_cents: el dinero se almacena en céntimos (INTEGER) para
+        // aritmética exacta — REAL acumula drift en sumas. amount REAL se
+        // conserva dual-write por compatibilidad (display, CSV, listing).
+        try {
+            await db.execute('ALTER TABLE transactions ADD COLUMN amount_cents INTEGER');
+            console.log("Schema upgrade: transactions.amount_cents añadido.");
+        } catch {
+            // Columna ya existente o BD recién creada — caso esperado, no es error.
+        }
+        // Backfill independiente del ALTER: si falla, se reintenta en el
+        // próximo arranque (solo toca filas aún sin céntimos).
+        try {
+            await db.execute(`
+                UPDATE transactions
+                SET amount_cents = CAST(ROUND(amount * 100) AS INTEGER)
+                WHERE amount_cents IS NULL
+            `);
+        } catch (e) {
+            console.error("Error en backfill de amount_cents:", e.message);
+        }
 
         // Upgrade idempotente para BDs existentes: la columna series_id vincula
         // cada ocurrencia generada con su serie (ancla = id de la transacción origen).
@@ -122,9 +145,19 @@ const initDB = async () => {
                 savings_goal REAL DEFAULT 10000,
                 currency TEXT DEFAULT 'EUR',
                 language TEXT DEFAULT 'es',
+                timezone TEXT,
                 FOREIGN KEY (user_id) REFERENCES users (id)
             )
         `);
+
+        // Timezone del usuario (IANA, p.ej. 'America/Bogota'): el CRON calcula
+        // su fecha local para marcar vencidos en el día correcto.
+        try {
+            await db.execute('ALTER TABLE user_settings ADD COLUMN timezone TEXT');
+            console.log("Schema upgrade: user_settings.timezone añadido.");
+        } catch {
+            // Columna ya existente o BD recién creada — caso esperado, no es error.
+        }
 
         await db.execute(`
             CREATE TABLE IF NOT EXISTS password_reset_tokens (

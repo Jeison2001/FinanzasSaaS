@@ -10,7 +10,7 @@ import compression from 'compression';
 import cron from 'node-cron';
 import logger from './logger.js';
 import db from './db.js';
-import { localToday } from './utils/date.utils.js';
+import { localToday, todayInTimeZone } from './utils/date.utils.js';
 
 import { processRecurringTransactions } from './services/recurrence.service.js';
 
@@ -102,15 +102,21 @@ cron.schedule('0 * * * *', async () => {
             return;
         }
 
-        // Buscar todos los usuarios con transacciones planned vencidas
+        // Usuarios con recurrentes planificadas (sin filtro de fecha: el "hoy"
+        // es distinto para cada timezone). Se calcula la fecha local de cada
+        // usuario para marcar vencidos en SU día, no en el del server.
         const usersRes = await db.execute({
-            sql: `SELECT DISTINCT user_id FROM transactions WHERE status = 'planned' AND date <= ? AND recurrence != 'none' AND recurrence IS NOT NULL`,
-            args: [localToday()]
+            sql: `SELECT DISTINCT user_id FROM transactions WHERE status = 'planned' AND recurrence != 'none' AND recurrence IS NOT NULL`
         });
+
+        const tzRes = await db.execute(`SELECT user_id, timezone FROM user_settings WHERE timezone IS NOT NULL`);
+        const tzByUser = new Map(tzRes.rows.map(r => [r.user_id, r.timezone]));
 
         let totalCreated = 0;
         for (const { user_id } of usersRes.rows) {
-            const r = await processRecurringTransactions(user_id);
+            const tz = tzByUser.get(user_id);
+            const userToday = tz ? todayInTimeZone(tz) : localToday();
+            const r = await processRecurringTransactions(user_id, userToday);
             totalCreated += r.recursions;
         }
         logger.info({ created: totalCreated, users: usersRes.rows.length }, '[CRON] Completado');

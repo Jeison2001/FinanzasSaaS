@@ -459,3 +459,31 @@ test('seguridad: security headers presentes en las respuestas', async () => {
     assert.equal(res.headers.get('x-frame-options'), 'DENY');
     assert.equal(res.headers.get('referrer-policy'), 'strict-origin-when-cross-origin');
 });
+
+test('timezone: se persiste en settings y sobrevive a otros saves', async () => {
+    const put = await api('/settings', { method: 'PUT', body: JSON.stringify({ savings_goal: 5000, currency: 'COP', language: 'es', timezone: 'America/Bogota' }) }, token);
+    assert.equal(put.status, 200);
+
+    let get = await api('/settings', {}, token);
+    assert.equal(get.body.timezone, 'America/Bogota');
+
+    // Un save sin timezone (p.ej. cambiar la meta) NO debe borrarla (COALESCE)
+    await api('/settings', { method: 'PUT', body: JSON.stringify({ savings_goal: 6000, currency: 'COP', language: 'es' }) }, token);
+    get = await api('/settings', {}, token);
+    assert.equal(get.body.timezone, 'America/Bogota', 'la timezone se conserva con COALESCE');
+    assert.equal(get.body.savings_goal, 6000);
+
+    // Timezone inválida rechazada por Zod
+    const bad = await api('/settings', { method: 'PUT', body: JSON.stringify({ savings_goal: 6000, currency: 'COP', language: 'es', timezone: 'Marte/Olympus;' }) }, token);
+    assert.equal(bad.status, 400);
+});
+
+test('dinero: 19.99 sobrevive al roundtrip API→BD(cents)→API sin artefactos', async () => {
+    const tx = await api('/transactions', { method: 'POST', body: JSON.stringify({ type: 'expense', category: 'cat_others', amount: 19.99, description: 'Roundtrip cents', date: '2026-08-14', status: 'completed' }) }, token);
+    assert.equal(tx.status, 201);
+
+    const list = await api(`/transactions?search=${encodeURIComponent('Roundtrip cents')}`, {}, token);
+    const row = list.body.rows[0];
+    assert.equal(row.amount, 19.99, 'display en unidades de moneda');
+    assert.equal(row.amount_cents, 1999, 'almacenamiento exacto en céntimos');
+});

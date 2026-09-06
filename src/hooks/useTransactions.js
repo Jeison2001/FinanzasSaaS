@@ -81,7 +81,8 @@ export const useTransactions = (filters = {}) => {
         try {
             const res = await axiosClient.post('/transactions', newTx);
             if (res.status === 201) {
-                await fetchTransactions(0, false, false);
+                // triggerRefresh refresca la lista (useEffect) y los stats —
+                // un solo GET, no dos.
                 triggerRefresh();
                 return { ok: true };
             }
@@ -111,8 +112,7 @@ export const useTransactions = (filters = {}) => {
         try {
             const res = await axiosClient.post('/transactions/confirm-overdue');
             if (res.status === 200) {
-                await fetchTransactions(0, false, false);
-                triggerRefresh();
+                triggerRefresh(); // refresca lista + stats con un solo GET
                 return { ok: true, confirmed: res.data.confirmed };
             }
             return { ok: false };
