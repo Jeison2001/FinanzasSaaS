@@ -20,12 +20,6 @@ export const worldCurrencies = [
 const currentYear = new Date().getFullYear();
 export const years = [currentYear - 1, currentYear, currentYear + 1];
 
-/** Períodos disponibles en los KPIs. */
-export const statPeriods = ['month', 'year', 'all'];
-
-/** Estados de transacción. */
-export const txStatuses = ['completed', 'planned', 'overdue'];
-
 /**
  * Claves de categoría por tipo de transacción.
  * Se traducen en tiempo real con useTranslation — no almacenar el texto, solo la clave.

@@ -64,5 +64,7 @@ npm run build && npm run start
 | `npm run dev:server` | Backend con nodemon |
 | `npm run build` | Build de producción |
 | `npm run lint` | ESLint |
-| `node server/smoke-test.mjs` | Smoke test de la API (13 bloques; requiere server en :3999) |
+| `node server/smoke-test.mjs` | Smoke test de la API (15 bloques; requiere server en :3999) |
+| `node server/i18n-audit.mjs` | Auditoría i18n: keys usadas/definidas y paridad es/en/ca |
+| `node server/cleanup-orphan.mjs` | Elimina usuarios de prueba residuales (smoketest_/debug_/inttest_/dupcheck_) |
 | `node migrate.js --force` | Migración one-shot local → Turso (**borra datos remotos**) |

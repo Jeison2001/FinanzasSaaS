@@ -1,24 +1,26 @@
 ---
 name: server-entry
-description: Express server entrypoint at server/index.js. Configures compression, CORS, JSON parsing. Mounts 4 route groups. Runs daily CRON job for recurring transactions with cron_locks deduplication. Starts jobWorker on boot.
+description: Express server entrypoint at server/index.js. Configures trust proxy, security headers, compression, CORS, JSON parsing (600kb). Mounts 6 route groups. Runs hourly CRON with per-user timezone for recurring transactions (cron_locks deduplication). Fail-fast on missing PORT/JWT_SECRET.
 ---
 
 ## File
-`server/index.js` (~114 lines)
+`server/index.js`
 
 ## Responsibilities
-1. Express app setup (compression, CORS, JSON body parser)
-2. Route mounting: auth, transactions, settings, admin under `/api`
-3. CRON job: daily at midnight via `node-cron` — processes ALL recurring transactions
-4. Job worker startup: `jobWorker.start()` on boot
+1. Express app setup: `trust proxy 1` (rate limiter tras proxy), security headers (nosniff, X-Frame-Options, Referrer-Policy), compression, CORS (allowlist + vercel.app), `express.json({ limit: '600kb' })`
+2. Route mounting under `/api`: auth, transactions, settings, admin, notifications, budgets
+3. CRON horario (`0 * * * *`): lock `cron_<fecha>_<hora>`; calcula el "hoy" de cada usuario con su timezone (`user_settings.timezone` → `todayInTimeZone`) y llama `processRecurringTransactions(userId, userToday)`
+4. Fail-fast: `PORT` y `JWT_SECRET` obligatorios; locks huérfanos de recurrencia limpiados al arranque
 5. Server listen on `process.env.PORT`
 
 ## Critical Warning
-- **Duplicated recurrence logic**: `processAllRecurring()` in this file is nearly identical to `processUserRecurring()` in `transactions.controller.js`. Changes to one MUST be mirrored in the other.
-- CRON uses `cron_locks` table to prevent duplicate daily runs.
+- La lógica de recurrencia es UNIFICADA en `server/services/recurrence.service.js` — este archivo solo la invoca. Prohibido duplicarla.
+- Confirmar una transacción `overdue` NO genera ocurrencia (el CRON ya la creó); solo una `planned` la genera al confirmarse (ver `transactions.controller.js`).
 
 ## Middleware Order
-1. `compression()`
-2. `cors({ origin: ... })`
-3. `express.json()`
-4. Route handlers
+1. `trust proxy`
+2. `compression()`
+3. Security headers middleware
+4. `cors({ origin: ... })`
+5. `express.json({ limit: '600kb' })`
+6. Route handlers
