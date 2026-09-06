@@ -127,5 +127,8 @@ export const translationsEs = {
     loadMore: "Cargar más",
     deleteConfirm: "¿Eliminar esta transacción?",
     deleteSeriesConfirm: "Esta transacción es el ancla de una serie recurrente: eliminarla cancelará también todas sus ocurrencias planificadas. ¿Continuar?",
-    goalMustBePositive: "La meta debe ser mayor que 0"
+    goalMustBePositive: "La meta debe ser mayor que 0",
+    confirmAllOverdue: "Confirmar todo",
+    bulkConfirmed: "{n} transacciones confirmadas",
+    importDuplicates: "{n} duplicadas omitidas"
 };

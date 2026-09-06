@@ -106,6 +106,23 @@ export const useTransactions = (filters = {}) => {
         }
     };
 
+    /** Confirma en bloque todas las transacciones vencidas (UX casual: sin una a una). */
+    const confirmOverdueBulk = async () => {
+        try {
+            const res = await axiosClient.post('/transactions/confirm-overdue');
+            if (res.status === 200) {
+                await fetchTransactions(0, false, false);
+                triggerRefresh();
+                return { ok: true, confirmed: res.data.confirmed };
+            }
+            return { ok: false };
+        } catch (err) {
+            console.error('Failed to bulk-confirm overdue:', err);
+            notifyError(err);
+            return { ok: false };
+        }
+    };
+
     const editTransaction = async (id, updatedTx) => {
         try {
             const res = await axiosClient.put(`/transactions/${id}`, updatedTx);
@@ -129,6 +146,7 @@ export const useTransactions = (filters = {}) => {
         addTransaction,
         deleteTransaction,
         editTransaction,
+        confirmOverdueBulk,
         loadMore,
         hasMore,
         loading,

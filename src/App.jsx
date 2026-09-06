@@ -44,7 +44,7 @@ const App = () => {
   const [period, setPeriod] = useState('month');
 
   const { filters, setters, clearAllFilters } = useFilters();
-  const { transactions, totalAll, addTransaction, deleteTransaction, editTransaction, loadMore, hasMore, loading, refreshTrigger, triggerRefresh } = useTransactions(filters);
+  const { transactions, totalAll, addTransaction, deleteTransaction, editTransaction, confirmOverdueBulk, loadMore, hasMore, loading, refreshTrigger, triggerRefresh } = useTransactions(filters);
   const { notifications, dismissNotification } = useNotifications(refreshTrigger);
   const stats = useStats(refreshTrigger, savingsGoal, period);
   const currencyLabel = currency; // moneda única por usuario (sin conversión)
@@ -58,6 +58,15 @@ const App = () => {
   // Confirmación manual de una transacción pendiente/vencida
   const handleConfirm = async (id) => {
     await editTransaction(id, { status: 'completed' });
+  };
+
+  // Confirmación en bloque de todas las vencidas (banner de KPIs)
+  const handleConfirmOverdueBulk = async () => {
+    const res = await confirmOverdueBulk();
+    if (res?.ok) {
+      const { pushToast } = useAppStore.getState();
+      pushToast(t('bulkConfirmed').replace('{n}', res.confirmed), 'success');
+    }
   };
 
   if (!isAuthenticated) return <AuthCard />;
@@ -90,7 +99,7 @@ const App = () => {
       />
 
       <main className="w-full max-w-[1400px] 2xl:max-w-[1600px] mx-auto p-4 md:p-6 space-y-6">
-        <KPICards stats={stats} lang={lang} currency={currencyLabel} t={t} period={period} onPeriodChange={setPeriod} />
+        <KPICards stats={stats} lang={lang} currency={currencyLabel} t={t} period={period} onPeriodChange={setPeriod} onConfirmOverdue={handleConfirmOverdueBulk} />
 
         {/* Selector de vista: historial, presupuestos o informes */}
         <div className="flex bg-white rounded-2xl p-1 shadow-sm border border-slate-200 w-full sm:w-fit mx-auto lg:mx-0">

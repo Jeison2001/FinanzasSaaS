@@ -2,6 +2,7 @@ import { v4 as uuidv4 } from 'uuid';
 import db from '../db.js';
 import logger from '../logger.js';
 import { getNextDate, localToday } from '../utils/date.utils.js';
+import { normalizeText } from '../utils/text.utils.js';
 
 /**
  * Generates and inserts the next 'planned' transaction for a recurring series.
@@ -13,8 +14,8 @@ import { getNextDate, localToday } from '../utils/date.utils.js';
 export const generateNextRecurrence = async (tx, txClient = db) => {
     const nextDateStr = getNextDate(tx.date, tx.recurrence);
     await txClient.execute({
-        sql: `INSERT INTO transactions (id, user_id, type, category, amount, description, date, status, recurrence, series_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        args: [uuidv4(), tx.user_id, tx.type, tx.category, tx.amount, tx.description, nextDateStr, 'planned', tx.recurrence, tx.series_id || null]
+        sql: `INSERT INTO transactions (id, user_id, type, category, amount, description, description_norm, date, status, recurrence, series_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        args: [uuidv4(), tx.user_id, tx.type, tx.category, tx.amount, tx.description, normalizeText(tx.description), nextDateStr, 'planned', tx.recurrence, tx.series_id || null]
     });
 };
 

@@ -127,5 +127,8 @@ export const translationsCa = {
     loadMore: "Carregar més",
     deleteConfirm: "Eliminar aquesta transacció?",
     deleteSeriesConfirm: "Aquesta transacció és l'àncora d'una sèrie recurrent: eliminar-la cancel·larà també totes les seves ocurrències planificades. Continuar?",
-    goalMustBePositive: "L'objectiu ha de ser major que 0"
+    goalMustBePositive: "L'objectiu ha de ser major que 0",
+    confirmAllOverdue: "Confirmar tot",
+    bulkConfirmed: "{n} transaccions confirmades",
+    importDuplicates: "{n} duplicades omeses"
 };

@@ -78,6 +78,44 @@ const initDB = async () => {
             // Columna ya existente o BD recién creada — caso esperado, no es error.
         }
 
+        // description_norm: descripción en minúsculas y sin acentos, para que
+        // la búsqueda funcione con es/ca (LIKE de SQLite solo es case-insensitive
+        // en ASCII). Backfill idempotente: solo toca filas aún no normalizadas.
+        // 21 REPLACEs anidados (A-Z lo resuelve LOWER); contarlos si se editan.
+        try {
+            await db.execute('ALTER TABLE transactions ADD COLUMN description_norm TEXT');
+            await db.execute(`
+                UPDATE transactions SET description_norm = LOWER(
+                    REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
+                        description,
+                        'Á','a'),
+                        'É','e'),
+                        'Í','i'),
+                        'Ó','o'),
+                        'Ú','u'),
+                        'Ü','u'),
+                        'Ñ','n'),
+                        'Ç','c'),
+                        'À','a'),
+                        'È','e'),
+                        'Ì','i'),
+                        'Ò','o'),
+                        'Ù','u'),
+                        'á','a'),
+                        'é','e'),
+                        'í','i'),
+                        'ó','o'),
+                        'ú','u'),
+                        'ü','u'),
+                        'ñ','n'),
+                        'ç','c')
+                ) WHERE description_norm IS NULL
+            `);
+            console.log("Schema upgrade: transactions.description_norm añadido y rellenado.");
+        } catch {
+            // Columna ya existente o BD recién creada — caso esperado, no es error.
+        }
+
         await db.execute(`
             CREATE TABLE IF NOT EXISTS user_settings (
                 user_id TEXT PRIMARY KEY,

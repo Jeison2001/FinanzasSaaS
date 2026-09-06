@@ -3,6 +3,7 @@ import db from '../db.js';
 import logger from '../logger.js';
 import { generateNextRecurrence } from '../services/recurrence.service.js';
 import { addTransactionSchema } from '../schemas/transaction.schema.js';
+import { normalizeText } from '../utils/text.utils.js';
 
 /**
  * GET /transactions — paginado y filtrado server-side.
@@ -29,10 +30,15 @@ export const getTransactions = async (req, res) => {
         args.push(status);
     }
     if (search && search.trim()) {
-        // Escapar comodines de LIKE para que % y _ en la búsqueda sean literales
-        const q = `%${search.trim().replace(/[%_\\]/g, (m) => `\\${m}`)}%`;
-        where.push(`(LOWER(description) LIKE LOWER(?) ESCAPE '\\' OR CAST(amount AS TEXT) LIKE ? ESCAPE '\\')`);
-        args.push(q, q);
+        // Escapar comodines de LIKE para que % y _ en la búsqueda sean literales.
+        // El texto se compara contra description_norm (minúsculas, sin acentos):
+        // "almacen" encuentra "Almacén" — LIKE de SQLite no colapsa acentos.
+        const raw = search.trim();
+        const norm = normalizeText(raw).replace(/[%_\\]/g, (m) => `\\${m}`);
+        const qNorm = `%${norm}%`;
+        const qAmount = `%${raw.replace(/[%_\\]/g, (m) => `\\${m}`)}%`;
+        where.push(`(description_norm LIKE ? ESCAPE '\\' OR CAST(amount AS TEXT) LIKE ? ESCAPE '\\')`);
+        args.push(qNorm, qAmount);
     }
     const qYear = parseInt(year, 10);
     const qMonth = parseInt(month, 10);
@@ -106,14 +112,16 @@ export const getStats = async (req, res) => {
 
     try {
         const statsResult = await db.execute({
+            // ROUND a 2 decimales: amount es REAL (float) y las sumas acumulan
+            // drift (0.1+0.2=0.30000000000000004) visible en los KPIs.
             sql: `
                 SELECT
-                    SUM(CASE WHEN type = 'income' AND status = 'completed' THEN amount ELSE 0 END) as actualIncome,
-                    SUM(CASE WHEN type = 'expense' AND status = 'completed' THEN amount ELSE 0 END) as actualExpense,
-                    SUM(CASE WHEN type = 'income' AND status = 'planned' THEN amount ELSE 0 END) as plannedIncome,
-                    SUM(CASE WHEN type = 'expense' AND status = 'planned' THEN amount ELSE 0 END) as plannedExpense,
-                    SUM(CASE WHEN type = 'income' AND status = 'overdue' THEN amount ELSE 0 END) as overdueIncome,
-                    SUM(CASE WHEN type = 'expense' AND status = 'overdue' THEN amount ELSE 0 END) as overdueExpense
+                    ROUND(SUM(CASE WHEN type = 'income' AND status = 'completed' THEN amount ELSE 0 END), 2) as actualIncome,
+                    ROUND(SUM(CASE WHEN type = 'expense' AND status = 'completed' THEN amount ELSE 0 END), 2) as actualExpense,
+                    ROUND(SUM(CASE WHEN type = 'income' AND status = 'planned' THEN amount ELSE 0 END), 2) as plannedIncome,
+                    ROUND(SUM(CASE WHEN type = 'expense' AND status = 'planned' THEN amount ELSE 0 END), 2) as plannedExpense,
+                    ROUND(SUM(CASE WHEN type = 'income' AND status = 'overdue' THEN amount ELSE 0 END), 2) as overdueIncome,
+                    ROUND(SUM(CASE WHEN type = 'expense' AND status = 'overdue' THEN amount ELSE 0 END), 2) as overdueExpense
                 FROM transactions
                 WHERE user_id = ?${dateFilter}
             `,
@@ -124,8 +132,8 @@ export const getStats = async (req, res) => {
         const lifetimeResult = await db.execute({
             sql: `
                 SELECT
-                    SUM(CASE WHEN type = 'income' AND status = 'completed' THEN amount ELSE 0 END) as lifetimeIncome,
-                    SUM(CASE WHEN type = 'expense' AND status = 'completed' THEN amount ELSE 0 END) as lifetimeExpense
+                    ROUND(SUM(CASE WHEN type = 'income' AND status = 'completed' THEN amount ELSE 0 END), 2) as lifetimeIncome,
+                    ROUND(SUM(CASE WHEN type = 'expense' AND status = 'completed' THEN amount ELSE 0 END), 2) as lifetimeExpense
                 FROM transactions
                 WHERE user_id = ?
             `,
@@ -212,27 +220,27 @@ export const getReports = async (req, res) => {
         if (prevStart && prevEnd) {
             const prevArgs = [userId, prevStart, prevEnd];
             const prevExpensesRes = await db.execute({
-                sql: `SELECT category, SUM(amount) as total FROM transactions WHERE user_id = ? AND type = 'expense' AND status != 'planned' AND date >= ? AND date <= ? GROUP BY category`,
+                sql: `SELECT category, ROUND(SUM(amount), 2) as total FROM transactions WHERE user_id = ? AND type = 'expense' AND status != 'planned' AND date >= ? AND date <= ? GROUP BY category`,
                 args: prevArgs
             });
             prevExpensesRes.rows.forEach(r => prevExpensesByCategory[r.category] = parseFloat(r.total));
 
             const prevIncomesRes = await db.execute({
-                sql: `SELECT category, SUM(amount) as total FROM transactions WHERE user_id = ? AND type = 'income' AND status != 'planned' AND date >= ? AND date <= ? GROUP BY category`,
+                sql: `SELECT category, ROUND(SUM(amount), 2) as total FROM transactions WHERE user_id = ? AND type = 'income' AND status != 'planned' AND date >= ? AND date <= ? GROUP BY category`,
                 args: prevArgs
             });
             prevIncomesRes.rows.forEach(r => prevIncomesBySource[r.category] = parseFloat(r.total));
         }
 
         const expensesRes = await db.execute({
-            sql: `SELECT category, SUM(amount) as total FROM transactions WHERE user_id = ? AND type = 'expense' AND status != 'planned'${dateFilter} GROUP BY category`,
+            sql: `SELECT category, ROUND(SUM(amount), 2) as total FROM transactions WHERE user_id = ? AND type = 'expense' AND status != 'planned'${dateFilter} GROUP BY category`,
             args: queryArgs
         });
         const expensesByCategory = {};
         expensesRes.rows.forEach(r => expensesByCategory[r.category] = parseFloat(r.total));
 
         const incomesRes = await db.execute({
-            sql: `SELECT category, SUM(amount) as total FROM transactions WHERE user_id = ? AND type = 'income' AND status != 'planned'${dateFilter} GROUP BY category`,
+            sql: `SELECT category, ROUND(SUM(amount), 2) as total FROM transactions WHERE user_id = ? AND type = 'income' AND status != 'planned'${dateFilter} GROUP BY category`,
             args: queryArgs
         });
         const incomesBySource = {};
@@ -244,8 +252,8 @@ export const getReports = async (req, res) => {
             sql: `
                 SELECT
                     substr(date, 1, 7) as month,
-                    SUM(CASE WHEN type='income' THEN amount ELSE 0 END) as incomes,
-                    SUM(CASE WHEN type='expense' THEN amount ELSE 0 END) as expenses
+                    ROUND(SUM(CASE WHEN type='income' THEN amount ELSE 0 END), 2) as incomes,
+                    ROUND(SUM(CASE WHEN type='expense' THEN amount ELSE 0 END), 2) as expenses
                 FROM transactions
                 WHERE user_id = ? AND status != 'planned'${dateFilter}
                 GROUP BY month
@@ -287,8 +295,8 @@ export const createTransaction = async (req, res) => {
         const sqlTx = await db.transaction("write");
         try {
             await sqlTx.execute({
-                sql: 'INSERT INTO transactions (id, user_id, type, category, amount, description, date, status, recurrence, series_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-                args: [id, userId, type, category, amount, description, date, status, recurrence, seriesId]
+                sql: 'INSERT INTO transactions (id, user_id, type, category, amount, description, description_norm, date, status, recurrence, series_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                args: [id, userId, type, category, amount, description, normalizeText(description), date, status, recurrence, seriesId]
             });
 
             if (recurrence && recurrence !== 'none' && status === 'completed') {
@@ -355,13 +363,17 @@ export const updateTransaction = async (req, res) => {
             await sqlTx.execute({
                 sql: `
                     UPDATE transactions
-                    SET type = ?, category = ?, amount = ?, description = ?, date = ?, status = ?, recurrence = ?, is_modified = 1, series_id = ?
+                    SET type = ?, category = ?, amount = ?, description = ?, description_norm = ?, date = ?, status = ?, recurrence = ?, is_modified = 1, series_id = ?
                     WHERE id = ? AND user_id = ?
                 `,
-                args: [updatedType, updatedCategory, updatedAmount, updatedDescription, updatedDate, updatedStatus, updatedRecurrence, seriesId, id, userId]
+                args: [updatedType, updatedCategory, updatedAmount, updatedDescription, normalizeText(updatedDescription), updatedDate, updatedStatus, updatedRecurrence, seriesId, id, userId]
             });
 
-            const justCompleted = oldTx.status !== 'completed' && updatedStatus === 'completed';
+            // Solo una planned genera la siguiente ocurrencia al confirmarse.
+            // Una overdue YA tuvo su siguiente generado por el CRON (misma
+            // transacción BD en la que pasó a overdue): generar de nuevo
+            // duplicaría la ocurrencia y corrompería los KPIs.
+            const justCompleted = oldTx.status === 'planned' && updatedStatus === 'completed';
             const justMadeRecurring = oldTx.recurrence === 'none' && updatedRecurrence !== 'none';
 
             if ((justCompleted || justMadeRecurring) && updatedStatus === 'completed' && updatedRecurrence !== 'none') {
@@ -512,8 +524,22 @@ export const importTransactions = async (req, res) => {
         const startIdx = rawLines[0].toLowerCase().includes('date') && rawLines[0].toLowerCase().includes('amount') ? 1 : 0;
 
         let imported = 0;
+        let duplicates = 0;
         const errors = [];
         const rows = rawLines.slice(startIdx, startIdx + 1000);
+        // Filas fuera del límite de 1000: reportadas, no descartadas en silencio
+        const skipped = rawLines.length - startIdx - rows.length;
+
+        // Dedupe: clave (fecha|tipo|monto|descripción) contra la BD del usuario
+        // y dentro del propio lote — reimportar el mismo archivo no duplica datos.
+        const existingRes = await db.execute({
+            sql: 'SELECT date, type, amount, description FROM transactions WHERE user_id = ?',
+            args: [userId]
+        });
+        const existingKeys = new Set(
+            existingRes.rows.map(r => `${r.date}|${r.type}|${r.amount}|${r.description}`)
+        );
+        const batchKeys = new Set();
 
         for (const line of rows) {
             const [date, type, category, amount, description, status = 'completed', recurrence = 'none'] = parseLine(line);
@@ -528,18 +554,45 @@ export const importTransactions = async (req, res) => {
                 continue;
             }
 
+            const dedupeKey = `${parsed.data.date}|${parsed.data.type}|${parsed.data.amount}|${parsed.data.description}`;
+            if (existingKeys.has(dedupeKey) || batchKeys.has(dedupeKey)) {
+                duplicates++;
+                continue;
+            }
+
             const id = uuidv4();
             const seriesId = parsed.data.recurrence !== 'none' ? id : null;
             await db.execute({
-                sql: 'INSERT INTO transactions (id, user_id, type, category, amount, description, date, status, recurrence, series_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-                args: [id, userId, parsed.data.type, parsed.data.category, parsed.data.amount, parsed.data.description, parsed.data.date, parsed.data.status, parsed.data.recurrence, seriesId]
+                sql: 'INSERT INTO transactions (id, user_id, type, category, amount, description, description_norm, date, status, recurrence, series_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                args: [id, userId, parsed.data.type, parsed.data.category, parsed.data.amount, parsed.data.description, normalizeText(parsed.data.description), parsed.data.date, parsed.data.status, parsed.data.recurrence, seriesId]
             });
+            batchKeys.add(dedupeKey);
             imported++;
         }
 
-        res.json({ imported, errors });
+        res.json({ imported, duplicates, errors, skipped });
     } catch (err) {
         logger.error({ err }, '[POST /transactions/import] Error al importar CSV');
         res.status(500).json({ error: 'Failed to import transactions' });
+    }
+};
+
+/**
+ * POST /transactions/confirm-overdue
+ * Confirma en bloque todas las transacciones vencidas del usuario.
+ * No genera ocurrencias: las overdue ya tuvieron su siguiente planned creado
+ * por el CRON al pasar de planned → overdue.
+ */
+export const confirmOverdueBulk = async (req, res) => {
+    const userId = req.user.id;
+    try {
+        const result = await db.execute({
+            sql: `UPDATE transactions SET status = 'completed' WHERE user_id = ? AND status = 'overdue'`,
+            args: [userId]
+        });
+        res.json({ confirmed: result.rowsAffected });
+    } catch (err) {
+        logger.error({ err, userId }, '[POST /transactions/confirm-overdue] Error');
+        res.status(500).json({ error: 'Failed to confirm overdue transactions' });
     }
 };

@@ -104,6 +104,11 @@ const ImportExportModal = ({ setShowModal, t, onImported }) => {
                         {result.errors?.length > 0
                             ? t('importPartial').replace('{ok}', result.imported).replace('{err}', result.errors.length)
                             : t('importSuccess').replace('{n}', result.imported)}
+                        {!!result.duplicates && (
+                            <span className="block text-xs font-semibold mt-1">
+                                {t('importDuplicates').replace('{n}', result.duplicates)}
+                            </span>
+                        )}
                     </div>
                 )}
 

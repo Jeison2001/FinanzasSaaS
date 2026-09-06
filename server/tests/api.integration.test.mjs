@@ -148,7 +148,9 @@ test('tx: listar devuelve {rows,total}', async () => {
 
 // ── 4. STATS (aquí solo existen las 3 transacciones creadas arriba — el orden importa) ──
 test('stats: modo month vs all vs período vacío', async () => {
-    const month = await api('/transactions/stats?mode=month', {}, token);
+    // Mes explícito (agosto 2026): no depender del "mes actual" del server,
+    // que hace el test frágil al cruzar el fin de mes.
+    const month = await api('/transactions/stats?mode=month&month=7&year=2026', {}, token);
     assert.equal(month.body.actualIncome, 2000);
     assert.equal(month.body.actualExpense, 500);
 
@@ -375,4 +377,85 @@ test('admin: reset de usuario borra también presupuestos y es transaccional', a
     // Los presupuestos del usuario reseteado deben haber desaparecido
     const budgets = await api('/budgets?month=7&year=2026', {}, token);
     assert.equal(budgets.body.length, 0, 'el reset debe borrar los presupuestos');
+});
+
+// ── 11. REGRESIONES DE SESIÓN 3 (seguridad, flexibilidad, UX casual) ──
+test('CRÍTICO: confirmar una overdue NO duplica la ocurrencia de la serie', async () => {
+    const { processRecurringTransactions } = await import('../services/recurrence.service.js');
+
+    // Serie mensual vencida: CRON la pasa a overdue y genera el siguiente planned
+    const tx = await api('/transactions', { method: 'POST', body: JSON.stringify({ type: 'expense', category: 'cat_subs', amount: 90, description: 'Alquiler dup', date: '2026-07-08', status: 'planned', recurrence: 'monthly' }) }, token);
+    const anchorId = tx.body.id;
+    await processRecurringTransactions(userId);
+
+    let list = await api('/transactions?limit=200', {}, token);
+    const plannedBefore = list.body.rows.filter(t => t.series_id === anchorId && t.status === 'planned').length;
+    assert.equal(plannedBefore, 1, 'el CRON deja exactamente 1 planned en la serie');
+
+    // El usuario confirma la overdue
+    const conf = await api(`/transactions/${anchorId}`, { method: 'PUT', body: JSON.stringify({ status: 'completed' }) }, token);
+    assert.equal(conf.status, 200);
+
+    list = await api('/transactions?limit=200', {}, token);
+    const plannedAfter = list.body.rows.filter(t => t.series_id === anchorId && t.status === 'planned');
+    assert.equal(plannedAfter.length, 1, `confirmar una overdue no debe generar otra ocurrencia (hay ${plannedAfter.map(t => t.date).join(',')})`);
+
+    // Limpieza de la serie para tests siguientes
+    await api(`/transactions/${anchorId}`, { method: 'DELETE' }, token);
+});
+
+test('confirmación masiva de vencidas: endpoint + conteo correcto', async () => {
+    const { processRecurringTransactions } = await import('../services/recurrence.service.js');
+
+    await api('/transactions', { method: 'POST', body: JSON.stringify({ type: 'expense', category: 'cat_subs', amount: 10, description: 'Vencida bulk 1', date: '2026-07-01', status: 'planned', recurrence: 'monthly' }) }, token);
+    await api('/transactions', { method: 'POST', body: JSON.stringify({ type: 'expense', category: 'cat_subs', amount: 20, description: 'Vencida bulk 2', date: '2026-07-02', status: 'planned', recurrence: 'monthly' }) }, token);
+    await processRecurringTransactions(userId);
+
+    const before = await api('/transactions?status=overdue', {}, token);
+    const overdueCount = before.body.total;
+    assert.ok(overdueCount >= 2, `debe haber vencidas (hay ${overdueCount})`);
+
+    const bulk = await api('/transactions/confirm-overdue', { method: 'POST' }, token);
+    assert.equal(bulk.status, 200);
+    assert.equal(bulk.body.confirmed, overdueCount);
+
+    const after = await api('/transactions?status=overdue', {}, token);
+    assert.equal(after.body.total, 0, 'después del bulk no queda ninguna vencida');
+});
+
+test('CSV: importar el mismo archivo dos veces no duplica (dedupe)', async () => {
+    const csv = 'date,type,category,amount,description,status,recurrence\n2026-08-05,expense,cat_transport,77,Ruta dedupe,completed,none';
+    const first = await api('/transactions/import', { method: 'POST', body: JSON.stringify({ csv }) }, token);
+    assert.equal(first.body.imported, 1);
+
+    const second = await api('/transactions/import', { method: 'POST', body: JSON.stringify({ csv }) }, token);
+    assert.equal(second.body.imported, 0, 'la reimportación no inserta nada');
+    assert.equal(second.body.duplicates, 1, 'la fila se reporta como duplicada');
+});
+
+test('búsqueda: sin acentos y sin mayúsculas encuentra ("almacen" → "Almacén")', async () => {
+    await api('/transactions', { method: 'POST', body: JSON.stringify({ type: 'expense', category: 'cat_housing', amount: 50, description: 'Almacén Central', date: '2026-08-12', status: 'completed' }) }, token);
+
+    const r = await api(`/transactions?search=${encodeURIComponent('almacen central')}`, {}, token);
+    assert.ok(r.body.rows.some(t => t.description === 'Almacén Central'), 'debe matchear ignorando acentos y mayúsculas');
+
+    const r2 = await api(`/transactions?search=${encodeURIComponent('ALMACEN')}`, {}, token);
+    assert.ok(r2.body.rows.some(t => t.description === 'Almacén Central'));
+});
+
+test('dinero: 0.10 + 0.20 suma exactamente 0.30 en stats (ROUND anti-drift)', async () => {
+    // Mes aislado para que solo estas dos transacciones compongan el total
+    await api('/transactions', { method: 'POST', body: JSON.stringify({ type: 'expense', category: 'cat_others', amount: 0.1, description: 'Centavo A', date: '2025-06-13', status: 'completed' }) }, token);
+    await api('/transactions', { method: 'POST', body: JSON.stringify({ type: 'expense', category: 'cat_others', amount: 0.2, description: 'Centavo B', date: '2025-06-13', status: 'completed' }) }, token);
+
+    const r = await api('/transactions/stats?mode=month&month=5&year=2025', {}, token);
+    // Sin ROUND, REAL float devolvería 0.30000000000000004
+    assert.equal(r.body.actualExpense, 0.3, `la suma debe estar redondeada a 2 decimales (${r.body.actualExpense})`);
+});
+
+test('seguridad: security headers presentes en las respuestas', async () => {
+    const res = await fetch(`${BASE}/api/auth/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: 'x@x.co', password: 'xxxxxx' }) });
+    assert.equal(res.headers.get('x-content-type-options'), 'nosniff');
+    assert.equal(res.headers.get('x-frame-options'), 'DENY');
+    assert.equal(res.headers.get('referrer-policy'), 'strict-origin-when-cross-origin');
 });

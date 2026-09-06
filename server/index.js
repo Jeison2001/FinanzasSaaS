@@ -29,6 +29,15 @@ const app = express();
 app.set('trust proxy', 1);
 app.use(compression());
 
+// Security headers básicos (sin CSP estricta: la SPA conecta a un dominio de
+// API configurable en runtime, un CSP fijo la rompería en producción).
+app.use((req, res, next) => {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    next();
+});
+
 // Configuración segura de CORS
 const allowedOrigins = process.env.ALLOWED_ORIGINS 
     ? process.env.ALLOWED_ORIGINS.split(',') 
@@ -75,17 +84,21 @@ app.use('/api/budgets', budgetRoutes);
 // CRON
 // ─────────────────────────────────────────────────
 
-cron.schedule('0 0 * * *', async () => {
-    logger.info('[CRON] Iniciando proceso diario...');
+// Horario (no diario): el server suele vivir en UTC y los usuarios no — con
+// ejecución cada hora, una transacción pasa a overdue como mucho 1h después
+// del rollover de fecha del usuario, en vez de a medianoche del server.
+cron.schedule('0 * * * *', async () => {
+    logger.info('[CRON] Iniciando proceso horario...');
     try {
-        const lockId = `cron_${localToday()}`;
+        const now = new Date();
+        const lockId = `cron_${localToday()}_${now.getHours()}`;
         try {
             await db.execute({
                 sql: 'INSERT INTO cron_locks (id) VALUES (?)',
                 args: [lockId]
             });
         } catch (lockErr) {
-            logger.info('[CRON] Proceso ya ejecutado por otra instancia hoy. Omitiendo.');
+            logger.info('[CRON] Proceso ya ejecutado por otra instancia en esta hora. Omitiendo.');
             return;
         }
 

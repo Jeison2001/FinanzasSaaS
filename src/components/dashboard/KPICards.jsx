@@ -1,5 +1,5 @@
 import React from 'react';
-import { Wallet, TrendingUp, TrendingDown, Sparkles, AlertCircle } from 'lucide-react';
+import { Wallet, TrendingUp, TrendingDown, Sparkles, AlertCircle, CheckCheck } from 'lucide-react';
 import { formatCurrency } from '../../utils/formatters';
 
 const periodOptions = [
@@ -8,7 +8,7 @@ const periodOptions = [
     { value: 'all', key: 'periodAll' }
 ];
 
-const KPICards = ({ stats, lang, currency, t, period, onPeriodChange }) => {
+const KPICards = ({ stats, lang, currency, t, period, onPeriodChange, onConfirmOverdue }) => {
     // Calculate net savings
     const netSavings = stats.plannedIncome - stats.plannedExpense;
     // El aviso cubre gastos E ingresos vencidos (una nómina vencida también importa)
@@ -17,13 +17,21 @@ const KPICards = ({ stats, lang, currency, t, period, onPeriodChange }) => {
 
     return (
         <section className="space-y-3">
-            {/* Alerta de pagos vencidos sin confirmar */}
+            {/* Alerta de transacciones vencidas sin confirmar + acción rápida */}
             {hasOverdue && (
                 <div className="bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3 flex items-center gap-3 shadow-sm">
                     <AlertCircle size={18} className="text-amber-600 shrink-0" />
-                    <p className="text-sm font-bold text-amber-800">
+                    <p className="text-sm font-bold text-amber-800 flex-1">
                         {t('overdueWarning').replace('{amount}', formatCurrency(overdueTotal, lang, currency))}
                     </p>
+                    <button
+                        onClick={onConfirmOverdue}
+                        title={t('confirmAllOverdue')}
+                        className="bg-amber-500 hover:bg-amber-600 text-white px-3 py-1.5 rounded-xl flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest transition-all shadow-sm cursor-pointer shrink-0"
+                    >
+                        <CheckCheck size={14} />
+                        <span className="hidden sm:inline">{t('confirmAllOverdue')}</span>
+                    </button>
                 </div>
             )}
 
