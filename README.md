@@ -52,7 +52,7 @@ npm run build && npm run start
 - `status`: `completed` (confirmado), `planned` (planificado), `overdue` (vencido sin confirmar).
 - Las recurrencias (`daily|weekly|monthly|yearly`) generan la siguiente ocurrencia como `planned`; al vencer pasan a `overdue` — **nada se confirma automáticamente**.
 - `series_id` vincula cada ocurrencia con su ancla: quitar la recurrencia purga las planificadas restantes; borrar el ancla cancela la serie.
-- **Dinero en céntimos**: `amount_cents` (INTEGER) es la fuente para toda aritmética (exacta, sin drift float); `amount` REAL se mantiene dual-write por compatibilidad de display/CSV.
+- **Dinero en céntimos**: `amount_cents` (INTEGER) es la única columna física de dinero; la unidad de moneda se deriva en las queries de lectura (`amount_cents/100.0 AS amount`) — aritmética exacta, sin drift float, sin columnas duplicadas.
 - **Timezone por usuario**: el dispositivo la sincroniza en settings; el CRON horario usa la fecha local de cada usuario para marcar vencidos.
 - Sin migraciones: los cambios de schema en `server/db.js` se aplican con `CREATE TABLE IF NOT EXISTS` y `ALTER TABLE` idempotente en el arranque.
 

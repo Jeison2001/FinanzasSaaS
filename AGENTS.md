@@ -77,8 +77,8 @@ Estos archivos concentran la mayor complejidad y son los más buscados:
 6. **JWT expira en 365 días**: Riesgo de seguridad conocido. No cambiar sin análisis de impacto.
 7. **Modelo de transacciones**: `planned` → `overdue` → `completed`. Nada se auto-confirma. Series recurrentes vía `series_id` (ancla = transacción origen): quitar recurrencia purga planificadas; borrar ancla cancela la serie. Confirmar una `overdue` NO genera ocurrencia (el CRON ya la creó); solo una `planned` la genera al confirmarse.
 8. **Zod defaults en PUT**: Nunca usar `.partial()` sobre schemas con `.default()` — el default se inyecta en actualizaciones parciales y corrompe datos (ver `updateTransactionSchema`).
-9. **Dinero en céntimos**: toda aritmética usa `amount_cents` (INTEGER, vía `server/utils/money.utils.js`); `amount` REAL es dual-write solo para display/CSV. Nunca sumes `amount`.
-10. **Timezone**: `user_settings.timezone` (IANA) la sincroniza el frontend; el CRON horario calcula el "hoy" de cada usuario con `todayInTimeZone` (`date.utils.js`).
+9. **Dinero en céntimos**: `amount_cents` (INTEGER) es la ÚNICA columna física de dinero en `transactions`; la unidad de moneda se deriva en las queries de lectura (`amount_cents / 100.0 AS amount`) — no escribas ni sumes un `amount` físico, no existe. Conversión: `server/utils/money.utils.js`.
+10. **Timezone**: `user_settings.timezone` (IANA, validada con Intl en el schema) la sincroniza el frontend; el CRON horario calcula el "hoy" de cada usuario con `todayInTimeZone` (`date.utils.js`).
 
 ---
 

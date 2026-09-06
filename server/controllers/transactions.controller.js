@@ -38,7 +38,7 @@ export const getTransactions = async (req, res) => {
         const norm = normalizeText(raw).replace(/[%_\\]/g, (m) => `\\${m}`);
         const qNorm = `%${norm}%`;
         const qAmount = `%${raw.replace(/[%_\\]/g, (m) => `\\${m}`)}%`;
-        where.push(`(description_norm LIKE ? ESCAPE '\\' OR CAST(amount AS TEXT) LIKE ? ESCAPE '\\')`);
+        where.push(`(description_norm LIKE ? ESCAPE '\\' OR CAST(amount_cents / 100.0 AS TEXT) LIKE ? ESCAPE '\\')`);
         args.push(qNorm, qAmount);
     }
     const qYear = parseInt(year, 10);
@@ -70,7 +70,8 @@ export const getTransactions = async (req, res) => {
         const txResult = await db.execute({
             // Tiebreakers: sin ellos, filas con la misma fecha pueden duplicarse
             // o saltarse entre páginas (series diarias, día de nómina).
-            sql: `SELECT * FROM transactions WHERE ${whereSql} ORDER BY date DESC, created_at DESC, id LIMIT ? OFFSET ?`,
+            // amount no existe físicamente: se deriva de amount_cents para display.
+            sql: `SELECT *, amount_cents / 100.0 AS amount FROM transactions WHERE ${whereSql} ORDER BY date DESC, created_at DESC, id LIMIT ? OFFSET ?`,
             args: [...args, limit, offset]
         });
         const countResult = await db.execute({
@@ -295,10 +296,10 @@ export const createTransaction = async (req, res) => {
         // y el CRON (que solo procesa planned) nunca regeneraría la serie.
         const sqlTx = await db.transaction("write");
         try {
-            // Dual-write: amount (display/compat) + amount_cents (aritmética exacta)
+            // amount es columna GENERADA (amount_cents/100): solo se escribe céntimos
             await sqlTx.execute({
-                sql: 'INSERT INTO transactions (id, user_id, type, category, amount, amount_cents, description, description_norm, date, status, recurrence, series_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-                args: [id, userId, type, category, amount, toCents(amount), description, normalizeText(description), date, status, recurrence, seriesId]
+                sql: 'INSERT INTO transactions (id, user_id, type, category, amount_cents, description, description_norm, date, status, recurrence, series_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                args: [id, userId, type, category, toCents(amount), description, normalizeText(description), date, status, recurrence, seriesId]
             });
 
             if (recurrence && recurrence !== 'none' && status === 'completed') {
@@ -336,10 +337,11 @@ export const updateTransaction = async (req, res) => {
 
         const oldTx = trxResult.rows[0];
 
-        // Fusionar los valores del payload con los existentes para soportar actualizaciones parciales sin sobreescribir con NULL
+        // Fusionar los valores del payload con los existentes para soportar actualizaciones parciales sin sobreescribir con NULL.
+        // amount no existe físicamente: el valor actual se deriva de los céntimos.
         const updatedType = type !== undefined ? type : oldTx.type;
         const updatedCategory = category !== undefined ? category : oldTx.category;
-        const updatedAmount = amount !== undefined ? amount : oldTx.amount;
+        const updatedAmount = amount !== undefined ? amount : fromCents(oldTx.amount_cents);
         const updatedDescription = description !== undefined ? description : oldTx.description;
         const updatedDate = date !== undefined ? date : oldTx.date;
         const updatedStatus = status !== undefined ? status : oldTx.status;
@@ -365,10 +367,10 @@ export const updateTransaction = async (req, res) => {
             await sqlTx.execute({
                 sql: `
                     UPDATE transactions
-                    SET type = ?, category = ?, amount = ?, amount_cents = ?, description = ?, description_norm = ?, date = ?, status = ?, recurrence = ?, is_modified = 1, series_id = ?
+                    SET type = ?, category = ?, amount_cents = ?, description = ?, description_norm = ?, date = ?, status = ?, recurrence = ?, is_modified = 1, series_id = ?
                     WHERE id = ? AND user_id = ?
                 `,
-                args: [updatedType, updatedCategory, updatedAmount, toCents(updatedAmount), updatedDescription, normalizeText(updatedDescription), updatedDate, updatedStatus, updatedRecurrence, seriesId, id, userId]
+                args: [updatedType, updatedCategory, toCents(updatedAmount), updatedDescription, normalizeText(updatedDescription), updatedDate, updatedStatus, updatedRecurrence, seriesId, id, userId]
             });
 
             // Solo una planned genera la siguiente ocurrencia al confirmarse.
@@ -464,7 +466,7 @@ export const exportTransactions = async (req, res) => {
     const userId = req.user.id;
     try {
         const result = await db.execute({
-            sql: `SELECT date, type, category, amount, description, status, recurrence FROM transactions WHERE user_id = ? ORDER BY date DESC`,
+            sql: `SELECT date, type, category, amount_cents / 100.0 AS amount, description, status, recurrence FROM transactions WHERE user_id = ? ORDER BY date DESC`,
             args: [userId]
         });
 
@@ -566,8 +568,8 @@ export const importTransactions = async (req, res) => {
             const id = uuidv4();
             const seriesId = parsed.data.recurrence !== 'none' ? id : null;
             await db.execute({
-                sql: 'INSERT INTO transactions (id, user_id, type, category, amount, amount_cents, description, description_norm, date, status, recurrence, series_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-                args: [id, userId, parsed.data.type, parsed.data.category, parsed.data.amount, toCents(parsed.data.amount), parsed.data.description, normalizeText(parsed.data.description), parsed.data.date, parsed.data.status, parsed.data.recurrence, seriesId]
+                sql: 'INSERT INTO transactions (id, user_id, type, category, amount_cents, description, description_norm, date, status, recurrence, series_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                args: [id, userId, parsed.data.type, parsed.data.category, toCents(parsed.data.amount), parsed.data.description, normalizeText(parsed.data.description), parsed.data.date, parsed.data.status, parsed.data.recurrence, seriesId]
             });
             batchKeys.add(dedupeKey);
             imported++;

@@ -8,8 +8,10 @@ export const localToday = () => {
 
 /**
  * Fecha de HOY en la zona horaria del usuario (IANA, p.ej. 'America/Bogota').
- * 'en-CA' formatea como YYYY-MM-DD directamente. Si la zona es inválida o
- * el entorno no la soporta, cae al hoy local del server.
+ * 'en-CA' formatea como YYYY-MM-DD directamente.
+ * El try/catch es red de seguridad inalcanzable en la práctica: el schema de
+ * settings solo acepta zonas IANA válidas. Existe para que un valor corrupto
+ * (p.ej. editado a mano en la BD) no tumbe el lote CRON completo.
  */
 export const todayInTimeZone = (tz) => {
     try {

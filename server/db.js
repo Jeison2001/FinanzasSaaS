@@ -56,8 +56,7 @@ const initDB = async () => {
                 user_id TEXT NOT NULL,
                 type TEXT NOT NULL,
                 category TEXT NOT NULL,
-                amount REAL NOT NULL,
-                amount_cents INTEGER,
+                amount_cents INTEGER NOT NULL DEFAULT 0,
                 description TEXT,
                 date TEXT NOT NULL,
                 status TEXT NOT NULL,
@@ -70,9 +69,12 @@ const initDB = async () => {
             )
         `);
 
-        // amount_cents: el dinero se almacena en céntimos (INTEGER) para
-        // aritmética exacta — REAL acumula drift en sumas. amount REAL se
-        // conserva dual-write por compatibilidad (display, CSV, listing).
+        // ── Migración: dinero en céntimos como ÚNICA fuente de verdad ──
+        // amount era REAL (float, drift en sumas). Secuencia idempotente y
+        // tolerante a procesos paralelos: 1) añadir amount_cents  2) rellenar
+        // desde amount  3) DROP amount. La unidad de moneda se deriva en las
+        // queries de lectura (amount_cents/100.0 AS amount) — no hay columna
+        // física duplicada ni columnas generadas que mantener.
         try {
             await db.execute('ALTER TABLE transactions ADD COLUMN amount_cents INTEGER');
             console.log("Schema upgrade: transactions.amount_cents añadido.");
@@ -80,15 +82,22 @@ const initDB = async () => {
             // Columna ya existente o BD recién creada — caso esperado, no es error.
         }
         // Backfill independiente del ALTER: si falla, se reintenta en el
-        // próximo arranque (solo toca filas aún sin céntimos).
+        // próximo arranque. Si otro proceso ya dropeó amount, este UPDATE
+        // falla y se ignora — solo hay NULLs pendientes la primera vez.
         try {
             await db.execute(`
                 UPDATE transactions
                 SET amount_cents = CAST(ROUND(amount * 100) AS INTEGER)
                 WHERE amount_cents IS NULL
             `);
-        } catch (e) {
-            console.error("Error en backfill de amount_cents:", e.message);
+        } catch {
+            // amount ya fue eliminada por otro arranque — backfill ya hecho.
+        }
+        try {
+            await db.execute('ALTER TABLE transactions DROP COLUMN amount');
+            console.log("Schema upgrade: amount eliminada — amount_cents es la única fuente.");
+        } catch {
+            // Ya eliminada o BD recién creada — caso esperado, no es error.
         }
 
         // Upgrade idempotente para BDs existentes: la columna series_id vincula

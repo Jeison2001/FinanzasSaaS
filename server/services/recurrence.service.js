@@ -14,9 +14,13 @@ import { toCents } from '../utils/money.utils.js';
  */
 export const generateNextRecurrence = async (tx, txClient = db) => {
     const nextDateStr = getNextDate(tx.date, tx.recurrence);
+    // amount_cents es la única fuente: las filas leídas de la BD ya la traen.
+    // Fallback a toCents(amount) solo si el llamante pasó un objeto en memoria
+    // construido desde la API (nunca desde la BD).
+    const cents = tx.amount_cents != null ? tx.amount_cents : toCents(tx.amount);
     await txClient.execute({
-        sql: `INSERT INTO transactions (id, user_id, type, category, amount, amount_cents, description, description_norm, date, status, recurrence, series_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        args: [uuidv4(), tx.user_id, tx.type, tx.category, tx.amount, toCents(tx.amount), tx.description, normalizeText(tx.description), nextDateStr, 'planned', tx.recurrence, tx.series_id || null]
+        sql: `INSERT INTO transactions (id, user_id, type, category, amount_cents, description, description_norm, date, status, recurrence, series_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        args: [uuidv4(), tx.user_id, tx.type, tx.category, cents, tx.description, normalizeText(tx.description), nextDateStr, 'planned', tx.recurrence, tx.series_id || null]
     });
 };
 

@@ -178,3 +178,18 @@ test('settings: language fr rechazado', () => {
 test('settings: savings_goal 0 rechazado', () => {
     assert.equal(updateSettingsSchema.safeParse({ savings_goal: 0, currency: 'EUR', language: 'es' }).success, false);
 });
+
+test('settings: timezone IANA válida aceptada', () => {
+    assert.equal(updateSettingsSchema.safeParse({ savings_goal: 100, currency: 'EUR', language: 'es', timezone: 'America/Bogota' }).success, true);
+    assert.equal(updateSettingsSchema.safeParse({ savings_goal: 100, currency: 'EUR', language: 'es', timezone: 'Europe/Madrid' }).success, true);
+});
+
+test('settings: timezone inventada rechazada (validación Intl, no solo regex)', () => {
+    assert.equal(updateSettingsSchema.safeParse({ savings_goal: 100, currency: 'EUR', language: 'es', timezone: 'Marte/Olympus' }).success, false);
+    assert.equal(updateSettingsSchema.safeParse({ savings_goal: 100, currency: 'EUR', language: 'es', timezone: 'Marte/Olympus;' }).success, false);
+    assert.equal(updateSettingsSchema.safeParse({ savings_goal: 100, currency: 'EUR', language: 'es', timezone: 'Not/A-Zone' }).success, false);
+});
+
+test('settings: timezone ausente sigue siendo válida (COALESCE conserva la guardada)', () => {
+    assert.equal(updateSettingsSchema.safeParse({ savings_goal: 100, currency: 'EUR', language: 'es' }).success, true);
+});
