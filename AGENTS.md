@@ -24,7 +24,7 @@ No realices búsquedas, ediciones, ni ejecuciones hasta completar este protocolo
 | Validación | Zod 4 | Schemas en `server/schemas/` |
 | Auth | JWT + bcrypt | 365 días de expiración |
 | Email | Resend | Password reset flow |
-| Jobs | CRON diario + locks distribuidos | `server/index.js` + `recurrence.service.js` |
+| Jobs | CRON horario (por timezone de usuario) + locks distribuidos | `server/index.js` + `recurrence.service.js` |
 | i18n | Custom hook | 3 idiomas: es/en/ca |
 
 ---
@@ -40,17 +40,21 @@ FinanzasSaaS/
 │   ├── store/                    # Zustand stores (auth + app state)
 │   ├── hooks/                    # Custom hooks (datos + lógica de negocio)
 │   ├── utils/                    # Constantes de dominio + formatters
-│   ├── locales/                  # i18n (85 keys × 3 idiomas)
+│   ├── locales/                  # i18n (133 keys × 3 idiomas, paridad verificada)
 │   └── components/               # UI organizada por feature
 ├── server/                       # Backend Express REST API
 │   ├── index.js                  # Entry: CORS, routes, CRON
 │   ├── db.js                     # SCHEMA CANÓNICO — 7 tablas, raw SQL
-│   ├── controllers/              # Lógica de negocio (6 controllers)
-│   ├── routes/                   # Definiciones de rutas (5 archivos)
+│   ├── controllers/              # Lógica de negocio (7 controllers)
+│   ├── routes/                   # Definiciones de rutas (6 archivos, 21 endpoints)
 │   ├── middlewares/              # Auth JWT, rate limit, Zod validate
-│   ├── schemas/                  # Contratos Zod (5 schemas)
+│   ├── schemas/                  # Contratos Zod (6 schemas)
 │   ├── services/                 # Email, Recurrence
-│   └── utils/                    # Date arithmetic para recurrencia
+│   ├── utils/                    # Date/timezone arithmetic, money (céntimos), text (normalización)
+│   ├── tests/                    # node:test — unitarios + integración (server propio :3998)
+│   └── smoke-test.mjs            # Smoke de API (server en :3999)
+├── e2e/                          # Playwright E2E (Edge del sistema, servers propios)
+├── playwright.config.js          # Config E2E — channel msedge, sin descargas CDN
 ├── opencode.json                 # Configuración de agentes y herramientas
 └── AGENTS.md                     # Este archivo — gobernanza
 ```
@@ -90,17 +94,16 @@ Antes de buscar manualmente en el codebase, verifica si existe una Skill que cub
 | Skill | Área |
 |---|---|
 | `db-schema` | Tablas, columnas, relaciones, server/db.js |
-| `controllers` | 5 controllers, endpoints, lógica de negocio |
+| `controllers` | 7 controllers, endpoints, lógica de negocio |
 | `zod-contracts` | 6 schemas Zod, validación de API |
 | `zustand-stores` | 2 stores, estado global frontend |
-| `react-hooks` | 6 hooks, data fetching, filtering |
+| `react-hooks` | 8 hooks, data fetching server-side, filtering |
 | `axios-client` | HTTP singleton, interceptors, auth |
-| `api-routes` | 13 endpoints, middleware stack |
-| `i18n-keys` | 85 keys × 3 idiomas, hook useTranslation |
+| `api-routes` | 21 endpoints, middleware stack |
+| `i18n-keys` | 133 keys × 3 idiomas, hook useTranslation, auditoría incluida |
 | `domain-constants` | Monedas, categorías, meses, años |
 | `server-entry` | Express setup, CRON, job worker boot |
 | `app-root` | React root, wiring de hooks/components |
-| `job-worker` | Background jobs, polling, retry logic |
 
 ### 2. Protocolo de Búsqueda Escalada
 Navega el codebase en orden de menor a mayor ruido. Cada paso se intenta solo si el anterior no resuelve la búsqueda:

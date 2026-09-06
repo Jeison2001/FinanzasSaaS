@@ -1,24 +1,24 @@
 ---
 name: axios-client
-description: Axios HTTP client singleton in src/api/axiosClient.js. Configures base URL from VITE_API_URL, JWT Bearer token injection via request interceptor, and automatic logout + redirect on 401 responses from protected routes.
+description: Axios HTTP client singleton in src/api/axiosClient.js. Configures base URL from VITE_API_URL, JWT Bearer token injection from localStorage via request interceptor, and automatic logout + redirect on 401 responses from protected routes (public auth routes exempted).
 ---
 
 ## File
-`src/api/axiosClient.js` (51 lines)
+`src/api/axiosClient.js`
 
 ## Configuration
-- `baseURL`: `import.meta.env.VITE_API_URL`
-- Request interceptor: attaches `Authorization: Bearer <token>` from `useAuthStore.getState().token`
-- Response interceptor: on 401 from non-auth routes → calls `useAuthStore.getState().logout()` → redirects to `/`
+- `baseURL`: `import.meta.env.VITE_API_URL` (termina forzosamente en `/api`) — falla fast si no está definida.
+- Request interceptor: adjunta `Authorization: Bearer <token>` leído de **localStorage** directamente (`localStorage.getItem('token')`).
+- Response interceptor: 401 en rutas NO públicas → limpia token/role de localStorage y redirige a `/`. Las rutas públicas exentas están listadas explícitamente en `PUBLIC_AUTH_ROUTES` (login, register, forgot-password, reset-password).
 
 ## Usage
 ```js
-import api from '../api/axiosClient';
-const { data } = await api.get('/transactions');
-await api.post('/transactions', payload);
+import axiosClient from '../api/axiosClient';
+const { data } = await axiosClient.get('/transactions?type=income');
+await axiosClient.put(`/budgets`, { month, year, items });
 ```
 
 ## Rules
-- Never create a second Axios instance — always import this singleton.
-- Token injection is automatic — no need to manually set headers.
-- The 401 interceptor skips `/api/auth/*` routes to avoid logout loops during login/register.
+- Nunca crear una segunda instancia de Axios — siempre este singleton.
+- La inyección de token es automática — no setear headers manualmente.
+- El build de producción elimina console.* (vite.config drop) — los errores de axios deben notificarse vía pushToast, no console.

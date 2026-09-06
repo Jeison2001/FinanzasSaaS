@@ -1,19 +1,23 @@
 ---
 name: zod-contracts
-description: Zod v4 validation schemas in server/schemas/. Define the API contract for auth, password, transaction, and settings endpoints. Used by validateMiddleware.js to validate req.body on POST/PUT routes.
+description: Zod v4 validation schemas in server/schemas/. 6 schemas define the API contract for auth, password, transaction (add/update/import), settings (con timezone IANA validada con Intl), budget y notification. Used by validateMiddleware.js on POST/PUT routes.
 ---
 
-## Files
-| Schema | Path | Exports |
-|---|---|---|
-| `auth` | `server/schemas/auth.schema.js` | `registerSchema`, `loginSchema` |
-| `password` | `server/schemas/password.schema.js` | `forgotPasswordSchema`, `resetPasswordSchema` |
-| `transaction` | `server/schemas/transaction.schema.js` | `addTransactionSchema`, `updateTransactionSchema` |
-| `settings` | `server/schemas/settings.schema.js` | `updateSettingsSchema` |
+## Archivos (server/schemas/)
+| Schema | Contrato |
+|---|---|
+| `auth.schema.js` | register (email, password min 6, currency contra `SUPPORTED_CURRENCIES`), login |
+| `password.schema.js` | forgot (email), reset (token **uuid**, password min 6) |
+| `transaction.schema.js` | `addTransactionSchema` (recurrence default none), `updateTransactionSchema` (**SIN defaults** — ver advertencia crítica), `importTransactionsSchema` (csv max 500KB) |
+| `settings.schema.js` | savings_goal positivo, language enum es/en/ca, **timezone validada con Intl** (solo IANA reales) |
+| `budget.schema.js` | month 0-11, year 2000-2100, items con amount >= 0 (0 = sin presupuesto), max 50 items |
+| `notification.schema.js` | marcado de lectura |
 
-## Rules
-- Schemas are the single source of truth for request body validation.
-- `updateTransactionSchema` is a partial of `addTransactionSchema`.
-- All schemas use Zod v4 (4.3.6) — NOT Zod v3. API differs.
-- Middleware: `server/middlewares/validateMiddleware.js` wraps `schema.parse(req.body)`.
-- When adding new endpoints, create schema first, then wire middleware in routes.
+## Advertencia crítica (regresión ya ocurrida)
+- NUNCA `.partial()` sobre un schema con `.default()`: el default se inyecta en el body de PUT parciales y corrompe datos (mató la recurrencia silenciosamente). `updateTransactionSchema` declara sus campos explícitos sin defaults.
+- `status` acepta `overdue` SOLO en update (editar una vencida no debe fallar); en add se rechaza — overdue lo produce el sistema.
+- Las fechas validan calendario real (dateLike: rechaza 2026-02-30) vía refine.
+
+## Reglas
+- Zod v4 — API distinta de v3, verificar docs ante la duda.
+- Al añadir un campo: schema → controller → tests (server/tests/schemas.test.mjs documenta cada contrato con casos borde).

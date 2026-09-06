@@ -14,7 +14,7 @@ Gestión financiera personal inteligente: registra ingresos y gastos, planifica 
 | Validación | Zod 4 (`server/schemas/`) |
 | Auth | JWT + bcrypt |
 | Email | Resend (password reset) |
-| Jobs | CRON diario + locks distribuidos (`cron_locks`) |
+| Jobs | CRON horario (por timezone de usuario) + locks distribuidos (`cron_locks`) |
 
 ## Puesta en marcha
 
@@ -44,7 +44,8 @@ npm run build && npm run start
 | GET | `/api/transactions/reports?month&year&startDate&endDate` | Reportes + comparativa vs período anterior |
 | GET/POST | `/api/transactions/export` · `/api/transactions/import` | CSV (export/import) |
 | GET/PUT | `/api/budgets?month&year` | Presupuestos mensuales por categoría |
-| GET/PUT | `/api/settings` | Preferencias (moneda, idioma, meta de ahorro) |
+| GET/PUT | `/api/notifications` · `/api/notifications/:id/read` | Notificaciones in-app |
+| GET/PUT | `/api/settings` | Preferencias (idioma, meta de ahorro, timezone; moneda fijada en registro) |
 | GET | `/api/admin/users` · POST `/api/admin/users/:id/reset` | Panel admin (rol `admin`) |
 
 ## Modelo de transacciones
