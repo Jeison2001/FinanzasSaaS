@@ -13,7 +13,8 @@
     "preview": "vite preview",
     "test": "node --test \"server/tests/*.test.mjs\"",
     "test:unit": "node --test server/tests/date.utils.test.mjs server/tests/schemas.test.mjs server/tests/text.utils.test.mjs server/tests/money.tz.test.mjs",
-    "test:integration": "node --test server/tests/api.integration.test.mjs"
+    "test:integration": "node --test server/tests/api.integration.test.mjs",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@libsql/client": "^0.17.0",
@@ -45,6 +46,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
+    "@playwright/test": "^1.63.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.4",

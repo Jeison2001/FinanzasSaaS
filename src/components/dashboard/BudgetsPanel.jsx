@@ -22,11 +22,15 @@ const BudgetsPanel = ({ lang, currency, t }) => {
     const { reportsData } = useReports(0, String(month), String(year), '', '');
     const spentByCategory = reportsData.expensesByCategory || {};
 
-    // Sincronizar el borrador cuando se cargan los presupuestos del período
+    // Sincronizar el borrador cuando se cargan los presupuestos del período.
+    // MERGE, no replace: si el usuario ya tecleó mientras llegaba la carga
+    // (red lenta), sus valores se conservan en vez de perderse.
     useEffect(() => {
-        const d = {};
-        budgets.forEach(b => { d[b.category] = String(b.amount); });
-        setDraft(d);
+        setDraft(prev => {
+            const d = { ...prev };
+            budgets.forEach(b => { d[b.category] = String(b.amount); });
+            return d;
+        });
     }, [budgets]);
 
     // Todas las categorías de gasto siempre visibles: sin esto, un usuario

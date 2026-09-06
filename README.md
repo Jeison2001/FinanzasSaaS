@@ -64,6 +64,8 @@ npm run build && npm run start
 | `npm run dev:server` | Backend con nodemon |
 | `npm run build` | Build de producción |
 | `npm run lint` | ESLint |
+| `npm test` | 110 tests: unitarios + integración (server propio en :3998, Turso real) |
+| `npm run test:e2e` | 4 flujos E2E en Edge real (registro+moneda, crear, confirmar, presupuestos); auto-limpia su usuario de prueba. Usa `channel: msedge` — sin descargas del CDN de Playwright |
 | `node server/smoke-test.mjs` | Smoke test de la API (15 bloques; requiere server en :3999) |
 | `node server/i18n-audit.mjs` | Auditoría i18n: keys usadas/definidas y paridad es/en/ca |
 | `node server/cleanup-orphan.mjs` | Elimina usuarios de prueba residuales (smoketest_/debug_/inttest_/dupcheck_) |

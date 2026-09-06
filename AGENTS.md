@@ -72,7 +72,7 @@ Estos archivos concentran la mayor complejidad y son los más buscados:
 
 1. **Sin ORM / Sin migraciones**: Schema raw SQL en `db.js`. Cambios de schema: `CREATE TABLE IF NOT EXISTS` + `ALTER TABLE` idempotente en `initDB()` (no destructivos).
 3. **Sin router frontend**: Navegación controlada por `activeTab` en `useAppStore`. No usar react-router.
-4. **Tests**: suites en `server/tests/` — `npm test` (unitarios + integración; la integración levanta su propio server en :3998). Smoke adicional: `node server/smoke-test.mjs` (requiere server en :3999).
+4. **Tests**: 3 capas en `server/tests/` + `e2e/` — `npm test` (unitarios + integración; la integración levanta su propio server en :3998), `npm run test:e2e` (Playwright sobre Edge del sistema, frontend+backend propios, usuario auto-limpiado). Smoke adicional: `node server/smoke-test.mjs` (requiere server en :3999).
 5. **Tailwind v4** se importa en `index.css`. No crear CSS custom salvo excepciones justificadas.
 6. **JWT expira en 365 días**: Riesgo de seguridad conocido. No cambiar sin análisis de impacto.
 7. **Modelo de transacciones**: `planned` → `overdue` → `completed`. Nada se auto-confirma. Series recurrentes vía `series_id` (ancla = transacción origen): quitar recurrencia purga planificadas; borrar ancla cancela la serie. Confirmar una `overdue` NO genera ocurrencia (el CRON ya la creó); solo una `planned` la genera al confirmarse.

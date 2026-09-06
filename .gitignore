@@ -45,4 +45,10 @@ opencode-master-prompt-v2.txt
 *.db-shm
 *.db-wal
 server/data/
+
+# Artefactos de Playwright E2E
+test-results/
+playwright-report/
+blob-report/
+.playwright/
 migrate.js
