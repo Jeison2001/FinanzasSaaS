@@ -81,7 +81,7 @@ const App = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans pb-10">
+    <div className="min-h-dvh bg-gradient-to-br from-slate-50 via-white to-indigo-50 text-slate-900 font-sans pb-10">
       <Header
         lang={lang}
         setLang={setLang}
@@ -102,22 +102,22 @@ const App = () => {
         <KPICards stats={stats} lang={lang} currency={currencyLabel} t={t} period={period} onPeriodChange={setPeriod} onConfirmOverdue={handleConfirmOverdueBulk} />
 
         {/* Selector de vista: historial, presupuestos o informes */}
-        <div className="flex bg-white rounded-2xl p-1 shadow-sm border border-slate-200 w-full sm:w-fit mx-auto lg:mx-0">
+        <div className="flex flex-col sm:flex-row bg-white rounded-2xl p-1 shadow-sm border border-slate-200 w-full sm:w-fit mx-auto lg:mx-0">
           <button
             onClick={() => setActiveTab('transactions')}
-            className={`flex-1 sm:flex-none px-6 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'transactions' ? 'bg-slate-950 text-white shadow-md' : 'text-slate-500 hover:bg-slate-50 cursor-pointer'}`}
+            className={`flex-1 sm:flex-none px-6 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'transactions' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-500 hover:bg-slate-50 cursor-pointer'}`}
           >
             {t('history')}
           </button>
           <button
             onClick={() => setActiveTab('budgets')}
-            className={`flex-1 sm:flex-none px-6 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'budgets' ? 'bg-slate-950 text-white shadow-md' : 'text-slate-500 hover:bg-slate-50 cursor-pointer'}`}
+            className={`flex-1 sm:flex-none px-6 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'budgets' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-500 hover:bg-slate-50 cursor-pointer'}`}
           >
             {t('budgets')}
           </button>
           <button
             onClick={() => setActiveTab('reports')}
-            className={`flex-1 sm:flex-none px-6 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'reports' ? 'bg-slate-950 text-white shadow-md' : 'text-slate-500 hover:bg-slate-50 cursor-pointer'}`}
+            className={`flex-1 sm:flex-none px-6 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'reports' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-500 hover:bg-slate-50 cursor-pointer'}`}
           >
             {t('reports')}
           </button>

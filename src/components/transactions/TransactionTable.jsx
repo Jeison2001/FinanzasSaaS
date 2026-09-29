@@ -29,7 +29,7 @@ const ConfirmButton = ({ item, onConfirm, t }) => {
         <button
             onClick={() => onConfirm(item.id)}
             title={t('confirmTx')}
-            className="opacity-0 group-hover:opacity-100 p-1.5 text-emerald-500 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition-all cursor-pointer shrink-0"
+            className="opacity-100 md:opacity-0 md:group-hover:opacity-100 md:focus-visible:opacity-100 p-1.5 text-emerald-500 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition-all cursor-pointer shrink-0"
         >
             <Check size={14} strokeWidth={3} />
         </button>
@@ -96,7 +96,7 @@ const TransactionTable = ({
                         <ConfirmButton item={item} onConfirm={onConfirm} t={t} />
                         <button
                             onClick={() => handleDelete(item)}
-                            className="opacity-0 group-hover:opacity-100 p-1.5 text-slate-300 hover:text-rose-500 transition-all cursor-pointer shrink-0"
+                            className="opacity-100 md:opacity-0 md:group-hover:opacity-100 md:focus-visible:opacity-100 p-1.5 text-slate-300 hover:text-rose-500 transition-all cursor-pointer shrink-0"
                         >
                             <Trash2 size={14} />
                         </button>
@@ -114,7 +114,7 @@ const TransactionTable = ({
                         <button
                             onClick={loadMore}
                             disabled={loading}
-                            className="text-xs font-black uppercase tracking-widest text-slate-500 hover:text-emerald-600 transition-colors disabled:opacity-50"
+                            className="text-xs font-black uppercase tracking-widest text-slate-500 hover:text-indigo-600 transition-colors disabled:opacity-50"
                         >
                             {loading ? t('loading') || 'Loading...' : t('loadMore') || 'Load More'}
                         </button>
@@ -142,7 +142,7 @@ const TransactionTable = ({
                                     {formatDateI18n(item.date, lang)}
                                 </td>
                                 <td className="px-6 py-4">
-                                    <p className="text-sm font-bold text-slate-800 leading-none mb-1 cursor-pointer hover:text-emerald-600 transition-colors" onClick={() => onEdit(item)}>
+                                    <p className="text-sm font-bold text-slate-800 leading-none mb-1 cursor-pointer hover:text-indigo-600 transition-colors" onClick={() => onEdit(item)}>
                                         {item.description}
                                     </p>
                                     <p className="text-[10px] text-slate-400 font-black uppercase tracking-tighter">
@@ -160,7 +160,7 @@ const TransactionTable = ({
                                     <ConfirmButton item={item} onConfirm={onConfirm} t={t} />
                                     <button
                                         onClick={() => handleDelete(item)}
-                                        className="opacity-0 group-hover:opacity-100 p-2 text-slate-300 hover:text-rose-500 transition-all cursor-pointer"
+                                        className="opacity-100 md:opacity-0 md:group-hover:opacity-100 md:focus-visible:opacity-100 p-2 text-slate-300 hover:text-rose-500 transition-all cursor-pointer"
                                     >
                                         <Trash2 size={16} />
                                     </button>

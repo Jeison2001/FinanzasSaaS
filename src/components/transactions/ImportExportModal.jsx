@@ -61,7 +61,7 @@ const ImportExportModal = ({ setShowModal, t, onImported }) => {
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md">
-            <div className="bg-white w-full max-w-lg rounded-[2.5rem] shadow-2xl p-8">
+            <div className="bg-white w-full max-w-lg max-h-[90dvh] overflow-y-auto rounded-[2.5rem] shadow-2xl p-5 sm:p-8">
                 <div className="flex justify-between items-center mb-6">
                     <h2 className="text-2xl font-black text-slate-800 tracking-tighter">
                         {t('importTitle')}
@@ -77,7 +77,7 @@ const ImportExportModal = ({ setShowModal, t, onImported }) => {
                 <div className="flex gap-2 mb-6">
                     <button
                         onClick={handleExport}
-                        className="flex-1 bg-slate-900 hover:bg-slate-800 text-white py-3 rounded-2xl flex items-center justify-center gap-2 text-xs font-black uppercase tracking-widest transition-all cursor-pointer"
+                        className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-2xl flex items-center justify-center gap-2 text-xs font-black uppercase tracking-widest transition-all cursor-pointer"
                     >
                         <Download size={14} /> {t('exportCSV')}
                     </button>
@@ -96,7 +96,7 @@ const ImportExportModal = ({ setShowModal, t, onImported }) => {
                     onChange={(e) => setCsvText(e.target.value)}
                     rows={8}
                     placeholder="2026-08-01,expense,cat_food,45.50,Compra semanal,completed,none"
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-emerald-500 outline-none text-xs font-mono"
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none text-xs font-mono"
                 />
 
                 {result && (
@@ -115,7 +115,7 @@ const ImportExportModal = ({ setShowModal, t, onImported }) => {
                 <button
                     onClick={handleImport}
                     disabled={loading || !csvText.trim()}
-                    className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-black uppercase tracking-widest py-4 rounded-2xl transition-all shadow-xl shadow-emerald-100 mt-4 flex items-center justify-center gap-2 cursor-pointer"
+                    className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-black uppercase tracking-widest py-4 rounded-2xl transition-all shadow-xl shadow-indigo-100 mt-4 flex items-center justify-center gap-2 cursor-pointer"
                 >
                     <Upload size={16} /> {loading ? '...' : t('importCSV')}
                 </button>

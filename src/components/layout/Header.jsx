@@ -5,23 +5,23 @@ import { useAuth } from '../../hooks/useAuth';
 const Header = ({ lang, setLang, setShowAddModal, role, setForceClientView, saveSettings, t }) => {
     const { logout } = useAuth();
     return (
-        <header className="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
-            <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                    <div className="bg-slate-950 p-2 rounded-lg text-emerald-400">
+        <header className="bg-gradient-to-br from-indigo-600 to-indigo-500 sticky top-0 z-30 text-white shadow-md pt-[env(safe-area-inset-top,0px)]">
+            <div className="max-w-6xl mx-auto pl-[max(1rem,env(safe-area-inset-left,1rem))] pr-[max(1rem,env(safe-area-inset-right,1rem))] h-16 flex items-center justify-between">
+                <div className="flex items-center gap-2 min-w-0">
+                    <div className="bg-white/15 border border-white/25 p-2 rounded-lg text-white shrink-0">
                         <BarChart3 size={20} />
                     </div>
-                    <h1 className="text-xl font-bold text-slate-800 tracking-tight">
-                        {t('title')} <span className="text-emerald-500">SaaS</span>
+                    <h1 className="text-lg sm:text-xl font-bold text-white tracking-tight">
+                        {t('title')} <span className="text-indigo-200">SaaS</span>
                     </h1>
                 </div>
 
-                <div className="flex items-center gap-2">
-                    <div className="hidden md:flex items-center gap-2 mr-2">
+                <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+                    <div className="flex items-center mr-0.5 sm:mr-2">
                         <select
                             value={lang}
                             onChange={(e) => { setLang(e.target.value); saveSettings({ language: e.target.value }); }}
-                            className="bg-slate-50 text-[10px] font-black p-1 rounded border border-slate-200 uppercase tracking-widest cursor-pointer hover:bg-slate-100 transition-colors"
+                            className="bg-white/15 text-white text-[10px] font-black p-1 rounded border border-white/25 uppercase tracking-widest cursor-pointer hover:bg-white/25 transition-colors"
                         >
                             <option value="es">ES</option>
                             <option value="en">EN</option>
@@ -32,7 +32,7 @@ const Header = ({ lang, setLang, setShowAddModal, role, setForceClientView, save
                     {role === 'admin' && (
                         <button
                             onClick={() => setForceClientView(false)}
-                            className="bg-slate-800 hover:bg-slate-700 text-white px-3 py-2 rounded-xl flex items-center gap-2 transition-all shadow-md font-bold text-sm cursor-pointer"
+                            className="bg-white/15 hover:bg-white/25 border border-white/25 text-white px-2.5 sm:px-3 py-2 rounded-xl flex items-center gap-2 transition-all shadow-md font-bold text-sm cursor-pointer"
                         >
                             <Shield size={16} />
                             <span className="hidden sm:inline">{t('adminPanel')}</span>
@@ -41,7 +41,7 @@ const Header = ({ lang, setLang, setShowAddModal, role, setForceClientView, save
 
                     <button
                         onClick={() => setShowAddModal(true)}
-                        className="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-xl flex items-center gap-2 transition-all shadow-md font-bold text-sm cursor-pointer"
+                        className="bg-white hover:bg-indigo-50 text-indigo-600 px-3 sm:px-4 py-2 rounded-xl flex items-center gap-2 transition-all shadow-md font-bold text-sm cursor-pointer"
                     >
                         <PlusCircle size={18} />
                         <span className="hidden sm:inline">{t('newTransaction')}</span>
@@ -49,7 +49,7 @@ const Header = ({ lang, setLang, setShowAddModal, role, setForceClientView, save
                     <button
                         onClick={logout}
                         title={t('logout')}
-                        className="bg-rose-100 hover:bg-rose-200 text-rose-600 px-3 py-2 rounded-xl flex items-center gap-2 transition-all shadow-sm font-bold text-sm ml-2 cursor-pointer"
+                        className="bg-rose-100 hover:bg-rose-200 text-rose-600 px-2.5 sm:px-3 py-2 rounded-xl flex items-center gap-2 transition-all shadow-sm font-bold text-sm ml-0.5 sm:ml-2 cursor-pointer"
                     >
                         <LogOut size={16} />
                     </button>

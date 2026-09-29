@@ -16,26 +16,26 @@ const TransactionFilters = ({
 
     return (
         <div className="bg-white p-4 rounded-[2rem] border border-slate-200 shadow-sm space-y-4">
-            <div className="flex items-center justify-between">
-                <h2 className="text-lg font-black text-slate-800 flex items-center gap-2 tracking-tighter">
-                    <PieChart size={20} className="text-slate-950" />
+            <div className="flex flex-wrap items-center justify-between gap-2">
+                <h2 className="text-lg font-black text-slate-800 flex items-center gap-2 tracking-tighter min-w-0">
+                    <PieChart size={20} className="text-indigo-600 shrink-0" />
                     {t('history')}
                 </h2>
 
-                <div className="flex items-center gap-2">
-                    <div className="relative">
+                <div className="flex items-center gap-2 min-w-0">
+                    <div className="relative min-w-0">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
                         <input
                             type="text"
                             placeholder={t('searchPlaceholder')}
-                            className="pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-xs w-40 md:w-56 transition-all"
+                            className="pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-xs w-40 max-w-full md:w-56 transition-all"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                         />
                     </div>
                     <button
                         onClick={() => setShowFilters(!showFilters)}
-                        className={`p-2 rounded-xl border transition-all cursor-pointer ${showFilters ? 'bg-slate-950 border-slate-950 text-emerald-400' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+                        className={`p-2 rounded-xl border transition-all cursor-pointer ${showFilters ? 'bg-indigo-600 border-indigo-600 text-white' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}
                     >
                         <Filter size={16} />
                     </button>

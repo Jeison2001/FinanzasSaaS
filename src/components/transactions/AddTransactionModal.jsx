@@ -56,7 +56,7 @@ const AddTransactionModal = ({
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md">
-            <div className="bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl p-8 animate-in zoom-in-95 duration-200">
+            <div className="bg-white w-full max-w-md max-h-[90dvh] overflow-y-auto rounded-[2.5rem] shadow-2xl p-5 sm:p-8 animate-in zoom-in-95 duration-200">
                 <div className="flex justify-between items-center mb-8">
                     <h2 className="text-2xl font-black text-slate-800 tracking-tighter">
                         {t('addTransaction')}
@@ -94,7 +94,7 @@ const AddTransactionModal = ({
                         <input
                             type="text"
                             required
-                            className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-emerald-500 outline-none font-medium text-sm"
+                            className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none font-medium text-sm"
                             value={formData.description}
                             onChange={(e) => {
                                 const val = e.target.value;
@@ -103,7 +103,7 @@ const AddTransactionModal = ({
                         />
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="space-y-1">
                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
                                 {t('amount')} ({currency})
@@ -112,7 +112,7 @@ const AddTransactionModal = ({
                                 type="number"
                                 required
                                 step="0.01"
-                                className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-emerald-500 outline-none font-bold text-lg"
+                                className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-lg"
                                 value={formData.amount}
                                 onChange={(e) => {
                                     const val = e.target.value;
@@ -125,7 +125,7 @@ const AddTransactionModal = ({
                                 {t('category')}
                             </label>
                             <select
-                                className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-emerald-500 outline-none font-bold text-xs cursor-pointer hover:bg-slate-100 transition-colors"
+                                className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-xs cursor-pointer hover:bg-slate-100 transition-colors"
                                 value={formData.category}
                                 onChange={(e) => {
                                     const val = e.target.value;
@@ -139,14 +139,14 @@ const AddTransactionModal = ({
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="space-y-1">
                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
                                 {t('date')}
                             </label>
                             <input
                                 type="date"
-                                className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-emerald-500 outline-none text-xs font-bold"
+                                className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none text-xs font-bold"
                                 value={formData.date}
                                 onChange={(e) => {
                                     const newDate = e.target.value;
@@ -164,7 +164,7 @@ const AddTransactionModal = ({
                                 {t('status')}
                             </label>
                             <select
-                                className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-emerald-500 outline-none text-[10px] font-black uppercase tracking-widest cursor-pointer hover:bg-slate-100 transition-colors"
+                                className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none text-[10px] font-black uppercase tracking-widest cursor-pointer hover:bg-slate-100 transition-colors"
                                 value={formData.status}
                                 onChange={(e) => {
                                     const val = e.target.value;
@@ -186,7 +186,7 @@ const AddTransactionModal = ({
                             {t('recurrence')}
                         </label>
                         <select
-                            className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-emerald-500 outline-none text-[10px] font-black uppercase tracking-widest cursor-pointer hover:bg-slate-100 transition-colors"
+                            className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none text-[10px] font-black uppercase tracking-widest cursor-pointer hover:bg-slate-100 transition-colors"
                             value={formData.recurrence || 'none'}
                             onChange={(e) => {
                                 const val = e.target.value;
@@ -203,7 +203,7 @@ const AddTransactionModal = ({
 
                     <button
                         type="submit"
-                        className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black uppercase tracking-widest py-4 rounded-2xl transition-all shadow-xl shadow-emerald-100 mt-4 cursor-pointer"
+                        className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-black uppercase tracking-widest py-4 rounded-2xl transition-all shadow-xl shadow-indigo-100 mt-4 cursor-pointer"
                     >
                         {t('save')}
                     </button>

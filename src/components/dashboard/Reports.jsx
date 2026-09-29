@@ -159,7 +159,7 @@ const Reports = ({ refreshTrigger, lang, currency, t, onOpenImportExport }) => {
     if (loading) {
         return (
             <div className="bg-white rounded-[2rem] border border-slate-200 p-8 text-center mt-4 shadow-sm flex items-center justify-center h-64">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-slate-900 mx-auto"></div>
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
             </div>
         );
     }
@@ -226,14 +226,14 @@ const Reports = ({ refreshTrigger, lang, currency, t, onOpenImportExport }) => {
 
                     <button
                         onClick={downloadPDF}
-                        className="bg-slate-900 hover:bg-slate-800 text-white px-5 py-2 md:ml-2 rounded-xl flex items-center gap-2 transition-all shadow-md font-bold text-sm cursor-pointer"
+                        className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2 md:ml-2 rounded-xl flex items-center gap-2 transition-all shadow-md font-bold text-sm cursor-pointer"
                     >
                         <Download size={16} /> <span className="hidden sm:inline">{t('downloadPDF')}</span>
                     </button>
 
                     <button
                         onClick={onOpenImportExport}
-                        className="bg-emerald-500 hover:bg-emerald-600 text-white px-5 py-2 rounded-xl flex items-center gap-2 transition-all shadow-md font-bold text-sm cursor-pointer"
+                        className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2 rounded-xl flex items-center gap-2 transition-all shadow-md font-bold text-sm cursor-pointer"
                     >
                         <FileSpreadsheet size={16} /> <span className="hidden sm:inline">{t('importCSV')}</span>
                     </button>

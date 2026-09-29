@@ -42,11 +42,11 @@ const AdminDashboard = ({ lang, setLang, setForceClientView, saveSettings }) => 
     };
 
     return (
-        <div className="min-h-screen bg-slate-50 text-slate-900 font-sans pb-10">
-            <header className="bg-slate-900 border-b border-emerald-500/20 sticky top-0 z-30 shadow-sm text-white">
-                <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+        <div className="min-h-dvh bg-gradient-to-br from-slate-50 via-white to-indigo-50 text-slate-900 font-sans pb-10">
+            <header className="bg-gradient-to-br from-indigo-600 to-indigo-500 sticky top-0 z-30 shadow-md text-white pt-[env(safe-area-inset-top,0px)]">
+                <div className="max-w-6xl mx-auto pl-[max(1rem,env(safe-area-inset-left,1rem))] pr-[max(1rem,env(safe-area-inset-right,1rem))] h-16 flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <Shield className="text-emerald-400" size={24} />
+                        <Shield className="text-white" size={24} />
                         <h1 className="text-xl font-bold tracking-tight">
                             {t('adminPanel')}
                         </h1>
@@ -56,7 +56,7 @@ const AdminDashboard = ({ lang, setLang, setForceClientView, saveSettings }) => 
                         <select
                             value={lang}
                             onChange={(e) => { setLang(e.target.value); if (saveSettings) saveSettings({ language: e.target.value }); }}
-                            className="bg-slate-800 text-slate-300 text-[10px] font-black p-1.5 rounded-lg border border-slate-700 uppercase tracking-widest cursor-pointer hover:bg-slate-700 transition-colors mr-2 outline-none"
+                            className="bg-white/15 text-white text-[10px] font-black p-1.5 rounded-lg border border-white/25 uppercase tracking-widest cursor-pointer hover:bg-white/25 transition-colors mr-2 outline-none"
                         >
                             <option value="es">ES</option>
                             <option value="en">EN</option>
@@ -64,13 +64,13 @@ const AdminDashboard = ({ lang, setLang, setForceClientView, saveSettings }) => 
                         </select>
                         <button
                             onClick={() => setForceClientView(true)}
-                            className="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-2 rounded-xl flex items-center gap-2 transition-all shadow-sm font-bold text-sm cursor-pointer"
+                            className="bg-white hover:bg-indigo-50 text-indigo-600 px-3 py-2 rounded-xl flex items-center gap-2 transition-all shadow-sm font-bold text-sm cursor-pointer"
                         >
                             <LayoutDashboard size={16} /> <span className="hidden sm:inline">{t('viewClientDashboard')}</span>
                         </button>
                         <button
                             onClick={logout}
-                            className="bg-slate-800 hover:bg-slate-700 text-rose-400 px-3 py-2 rounded-xl flex items-center gap-2 transition-all shadow-sm font-bold text-sm cursor-pointer"
+                            className="bg-white/15 hover:bg-white/25 border border-white/25 text-rose-200 px-3 py-2 rounded-xl flex items-center gap-2 transition-all shadow-sm font-bold text-sm cursor-pointer"
                         >
                             <LogOut size={16} /> <span className="hidden sm:inline">{t('logout')}</span>
                         </button>
@@ -81,7 +81,7 @@ const AdminDashboard = ({ lang, setLang, setForceClientView, saveSettings }) => 
             <main className="max-w-6xl mx-auto p-4 md:p-6 space-y-6 mt-6">
                 <div className="bg-white rounded-[2rem] border border-slate-200 overflow-hidden shadow-sm p-6">
                     <div className="flex items-center gap-3 mb-6">
-                        <Users className="text-emerald-600" size={24} />
+                        <Users className="text-indigo-600" size={24} />
                         <h2 className="text-2xl font-black text-slate-800 tracking-tighter">
                             {t('registeredClients')}
                         </h2>
@@ -119,7 +119,7 @@ const AdminDashboard = ({ lang, setLang, setForceClientView, saveSettings }) => 
                                             {user.last_login_at ? new Date(user.last_login_at).toLocaleString(lang) : t('never')}
                                         </td>
                                         <td className="px-6 py-4">
-                                            <span className="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-xs font-black">
+                                            <span className="bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full text-xs font-black">
                                                 {user.transaction_count}
                                             </span>
                                         </td>
