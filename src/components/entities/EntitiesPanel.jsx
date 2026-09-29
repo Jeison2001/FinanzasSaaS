@@ -310,7 +310,8 @@ const EntitiesPanel = ({ lang, currency, t, overview, overviewLoading, reloadOve
                         </div>
                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">{t(key)}</p>
                         <p className={`text-2xl font-black tracking-tight leading-none ${negative ? 'text-rose-600' : 'text-slate-800'}`}>
-                            {negative ? `−${formatCurrency(Math.abs(value), lang, currency)}` : formatCurrency(value, lang, currency)}
+                            {/* El signo solo aplica a deuda REAL: un 0 nunca se muestra como −0,00 */}
+                            {negative && value > 0 ? `−${formatCurrency(Math.abs(value), lang, currency)}` : formatCurrency(value, lang, currency)}
                         </p>
                     </div>
                 ))}

@@ -181,6 +181,8 @@ const AddTransactionModal = ({
                                     key={value}
                                     type="button"
                                     onClick={() => handleTypeChange(value)}
+                                    aria-pressed={formData.type === value}
+                                    title={TYPE_LABELS[value]}
                                     className={`py-2.5 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all cursor-pointer ${formData.type === value ? `bg-white ${TYPE_COLORS[value]} shadow-sm` : 'text-slate-400'}`}
                                 >
                                     {TYPE_LABELS[value]}

@@ -6,6 +6,9 @@ for (const u of res.rows) {
     await db.execute('DELETE FROM budgets WHERE user_id = ?', [u.id]);
     await db.execute('DELETE FROM user_notifications WHERE user_id = ?', [u.id]);
     await db.execute('DELETE FROM user_settings WHERE user_id = ?', [u.id]);
+    await db.execute('DELETE FROM accounts WHERE user_id = ?', [u.id]);
+    await db.execute('DELETE FROM credit_cards WHERE user_id = ?', [u.id]);
+    await db.execute('DELETE FROM loans WHERE user_id = ?', [u.id]);
     await db.execute('DELETE FROM password_reset_tokens WHERE user_id = ?', [u.id]);
     await db.execute('DELETE FROM users WHERE id = ?', [u.id]);
     console.log('Limpiado:', u.email);
