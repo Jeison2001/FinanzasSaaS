@@ -1,6 +1,6 @@
 ---
 name: controllers
-description: Express REST API controllers in server/controllers/. 7 controllers handle auth (registro con moneda), password reset (con pwd_version), transactions (CRUD + stats por período + reports con deltas + series + CSV + bulk confirm), settings (timezone), admin, budgets y notifications. SQL siempre parametrizado, dinero en amount_cents.
+description: Express REST API controllers in server/controllers/. 11 controllers handle auth (registro con moneda), password reset (con pwd_version), transactions (CRUD + stats por período + reports con deltas + series + CSV + bulk confirm), settings (timezone), admin, budgets y notifications. SQL siempre parametrizado, dinero en amount_cents.
 ---
 
 ## Archivos (server/controllers/)
@@ -13,6 +13,9 @@ description: Express REST API controllers in server/controllers/. 7 controllers 
 | `settings.controller.js` | UPSERT con COALESCE en timezone (un save parcial no la borra) |
 | `admin.controller.js` | Listado de usuarios + reset transaccional (transactions, budgets, notifications, tokens, settings a default) |
 | `notifications.controller.js` | Listado no-leídas + marcar leída con ownership check |
+| `accounts/cards/loans.controller.js` | CRUD de entidades; saldos derivados vía entities.service.js; DELETE en cascada |
+| `overview.controller.js` | Patrimonio neto (cuentas − tarjetas − préstamos) por agregación SQL GROUP BY |
+| `services/entities.service.js` | FUENTE ÚNICA de derivados: REF_REQUIREMENTS por tipo, balance de cuenta, uso de tarjeta, pagado de préstamo |
 
 ## Reglas críticas
 - Toda query parametrizada con `args` — jamás interpolar valores.

@@ -5,6 +5,10 @@ import { generateNextRecurrence } from '../services/recurrence.service.js';
 import { addTransactionSchema } from '../schemas/transaction.schema.js';
 import { normalizeText } from '../utils/text.utils.js';
 import { toCents, fromCents } from '../utils/money.utils.js';
+import { checkTransactionRefs, REF_ALLOWED_FIELDS } from '../services/entities.service.js';
+
+/** Tipos de movimiento válidos (los KPIs tratan card_purchase como gasto). */
+const TX_TYPES = ['income', 'expense', 'transfer', 'card_purchase', 'card_payment', 'loan_payment'];
 
 /**
  * GET /transactions — paginado y filtrado server-side.
@@ -22,7 +26,7 @@ export const getTransactions = async (req, res) => {
     const where = ['user_id = ?'];
     const args = [userId];
 
-    if (type === 'income' || type === 'expense') {
+    if (TX_TYPES.includes(type)) {
         where.push('type = ?');
         args.push(type);
     }
@@ -119,11 +123,11 @@ export const getStats = async (req, res) => {
             sql: `
                 SELECT
                     SUM(CASE WHEN type = 'income' AND status = 'completed' THEN amount_cents ELSE 0 END) as actualIncome,
-                    SUM(CASE WHEN type = 'expense' AND status = 'completed' THEN amount_cents ELSE 0 END) as actualExpense,
+                    SUM(CASE WHEN type IN ('expense', 'card_purchase') AND status = 'completed' THEN amount_cents ELSE 0 END) as actualExpense,
                     SUM(CASE WHEN type = 'income' AND status = 'planned' THEN amount_cents ELSE 0 END) as plannedIncome,
-                    SUM(CASE WHEN type = 'expense' AND status = 'planned' THEN amount_cents ELSE 0 END) as plannedExpense,
+                    SUM(CASE WHEN type IN ('expense', 'card_purchase') AND status = 'planned' THEN amount_cents ELSE 0 END) as plannedExpense,
                     SUM(CASE WHEN type = 'income' AND status = 'overdue' THEN amount_cents ELSE 0 END) as overdueIncome,
-                    SUM(CASE WHEN type = 'expense' AND status = 'overdue' THEN amount_cents ELSE 0 END) as overdueExpense
+                    SUM(CASE WHEN type IN ('expense', 'card_purchase') AND status = 'overdue' THEN amount_cents ELSE 0 END) as overdueExpense
                 FROM transactions
                 WHERE user_id = ?${dateFilter}
             `,
@@ -135,7 +139,7 @@ export const getStats = async (req, res) => {
             sql: `
                 SELECT
                     SUM(CASE WHEN type = 'income' AND status = 'completed' THEN amount_cents ELSE 0 END) as lifetimeIncome,
-                    SUM(CASE WHEN type = 'expense' AND status = 'completed' THEN amount_cents ELSE 0 END) as lifetimeExpense
+                    SUM(CASE WHEN type IN ('expense', 'card_purchase') AND status = 'completed' THEN amount_cents ELSE 0 END) as lifetimeExpense
                 FROM transactions
                 WHERE user_id = ?
             `,
@@ -222,7 +226,8 @@ export const getReports = async (req, res) => {
         if (prevStart && prevEnd) {
             const prevArgs = [userId, prevStart, prevEnd];
             const prevExpensesRes = await db.execute({
-                sql: `SELECT category, SUM(amount_cents) as total_cents FROM transactions WHERE user_id = ? AND type = 'expense' AND status != 'planned' AND date >= ? AND date <= ? GROUP BY category`,
+                // card_purchase cuenta como GASTO en reportes (contrato de tipos)
+                sql: `SELECT category, SUM(amount_cents) as total_cents FROM transactions WHERE user_id = ? AND type IN ('expense', 'card_purchase') AND status != 'planned' AND date >= ? AND date <= ? GROUP BY category`,
                 args: prevArgs
             });
             prevExpensesRes.rows.forEach(r => prevExpensesByCategory[r.category] = fromCents(r.total_cents));
@@ -235,7 +240,7 @@ export const getReports = async (req, res) => {
         }
 
         const expensesRes = await db.execute({
-            sql: `SELECT category, SUM(amount_cents) as total_cents FROM transactions WHERE user_id = ? AND type = 'expense' AND status != 'planned'${dateFilter} GROUP BY category`,
+            sql: `SELECT category, SUM(amount_cents) as total_cents FROM transactions WHERE user_id = ? AND type IN ('expense', 'card_purchase') AND status != 'planned'${dateFilter} GROUP BY category`,
             args: queryArgs
         });
         const expensesByCategory = {};
@@ -246,7 +251,9 @@ export const getReports = async (req, res) => {
             args: queryArgs
         });
         const incomesBySource = {};
-        incomesRes.rows.forEach(r => incomesBySource[r.category] = parseFloat(r.total));
+        // Bug corregido: antes leía parseFloat(r.total) — columna inexistente
+        // (es total_cents) — así que incomesBySource siempre salía NaN/null.
+        incomesRes.rows.forEach(r => incomesBySource[r.category] = fromCents(r.total_cents));
 
         const limitClause = filterArgs.length > 0 ? '' : 'LIMIT 12';
         const orderClause = filterArgs.length > 0 ? 'ASC' : 'DESC';
@@ -255,7 +262,7 @@ export const getReports = async (req, res) => {
                 SELECT
                     substr(date, 1, 7) as month,
                     SUM(CASE WHEN type='income' THEN amount_cents ELSE 0 END) as incomes_cents,
-                    SUM(CASE WHEN type='expense' THEN amount_cents ELSE 0 END) as expenses_cents
+                    SUM(CASE WHEN type IN ('expense', 'card_purchase') THEN amount_cents ELSE 0 END) as expenses_cents
                 FROM transactions
                 WHERE user_id = ? AND status != 'planned'${dateFilter}
                 GROUP BY month
@@ -284,9 +291,21 @@ export const getReports = async (req, res) => {
 export const createTransaction = async (req, res) => {
     const userId = req.user.id;
     const { type, category, amount, description, date, status, recurrence = 'none' } = req.body;
+    const refs = {
+        accountId: req.body.accountId || null,
+        transferAccountId: req.body.transferAccountId || null,
+        cardId: req.body.cardId || null,
+        loanId: req.body.loanId || null
+    };
     const id = uuidv4();
 
     try {
+        // Coherencia por tipo + pertenencia de cada entidad referenciada.
+        // Se rechaza con 400 ANTES de abrir la transacción: un movimiento que
+        // apunta a una entidad ajena nunca debe quedar escrito.
+        const refCheck = await checkTransactionRefs(userId, type, refs);
+        if (!refCheck.ok) return res.status(400).json({ error: refCheck.error });
+
         // Si la transacción inicia una serie recurrente, actúa como ancla:
         // series_id = id propio; todas las ocurrencias generadas lo heredan.
         const seriesId = recurrence && recurrence !== 'none' ? id : null;
@@ -298,16 +317,22 @@ export const createTransaction = async (req, res) => {
         try {
             // amount es columna GENERADA (amount_cents/100): solo se escribe céntimos
             await sqlTx.execute({
-                sql: 'INSERT INTO transactions (id, user_id, type, category, amount_cents, description, description_norm, date, status, recurrence, series_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-                args: [id, userId, type, category, toCents(amount), description, normalizeText(description), date, status, recurrence, seriesId]
+                sql: 'INSERT INTO transactions (id, user_id, type, category, amount_cents, description, description_norm, date, status, recurrence, series_id, account_id, transfer_account_id, card_id, loan_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                args: [id, userId, type, category, toCents(amount), description, normalizeText(description), date, status, recurrence, seriesId, refs.accountId, refs.transferAccountId, refs.cardId, refs.loanId]
             });
 
             if (recurrence && recurrence !== 'none' && status === 'completed') {
+                // Las ocurrencias heredan también las refs: una card_purchase
+                // recurrente sin card_id corrompería el 'usado' derivado.
                 await generateNextRecurrence({
                     date, recurrence,
                     user_id: userId,
                     type, category, amount, description,
-                    series_id: seriesId
+                    series_id: seriesId,
+                    account_id: refs.accountId,
+                    transfer_account_id: refs.transferAccountId,
+                    card_id: refs.cardId,
+                    loan_id: refs.loanId
                 }, sqlTx);
             }
             await sqlTx.commit();
@@ -316,7 +341,7 @@ export const createTransaction = async (req, res) => {
             throw txErr;
         }
 
-        res.status(201).json({ id, type, category, amount, description, date, status, recurrence });
+        res.status(201).json({ id, type, category, amount, description, date, status, recurrence, ...refs });
     } catch (err) {
         logger.error({ err }, '[POST /transactions] Error al crear transacción');
         res.status(500).json({ error: 'Failed to create transaction' });
@@ -327,6 +352,14 @@ export const updateTransaction = async (req, res) => {
     const userId = req.user.id;
     const { id } = req.params;
     const { type, category, amount, description, date, status, recurrence } = req.body;
+    // Refs EXPLÍCITAS en el payload ('in body' tras el parse Zod): distinguir
+    // "el cliente envió la ref" de "la ref se hereda de la fila existente".
+    const explicitRefs = {
+        accountId: 'accountId' in req.body ? (req.body.accountId || null) : undefined,
+        transferAccountId: 'transferAccountId' in req.body ? (req.body.transferAccountId || null) : undefined,
+        cardId: 'cardId' in req.body ? (req.body.cardId || null) : undefined,
+        loanId: 'loanId' in req.body ? (req.body.loanId || null) : undefined
+    };
 
     try {
         const trxResult = await db.execute({
@@ -346,6 +379,29 @@ export const updateTransaction = async (req, res) => {
         const updatedDate = date !== undefined ? date : oldTx.date;
         const updatedStatus = status !== undefined ? status : oldTx.status;
         const updatedRecurrence = recurrence !== undefined ? recurrence : oldTx.recurrence;
+
+        // Refs fusionadas: explícita gana (null = limpiar), ausente hereda.
+        const updatedRefs = {
+            accountId: explicitRefs.accountId !== undefined ? explicitRefs.accountId : (oldTx.account_id || null),
+            transferAccountId: explicitRefs.transferAccountId !== undefined ? explicitRefs.transferAccountId : (oldTx.transfer_account_id || null),
+            cardId: explicitRefs.cardId !== undefined ? explicitRefs.cardId : (oldTx.card_id || null),
+            loanId: explicitRefs.loanId !== undefined ? explicitRefs.loanId : (oldTx.loan_id || null)
+        };
+
+        // Coherencia por tipo sobre el conjunto fusionado. Una ref heredada que
+        // dejó de aplicar (cambio de tipo) se LIMPIA; una ref enviada
+        // explícitamente incoherente es un bug del cliente → 400.
+        const allowedFields = REF_ALLOWED_FIELDS[updatedType] || [];
+        for (const field of Object.keys(updatedRefs)) {
+            if (updatedRefs[field] && !allowedFields.includes(field)) {
+                if (explicitRefs[field] !== undefined) {
+                    return res.status(400).json({ error: `Field ${field} is not allowed for type ${updatedType}` });
+                }
+                updatedRefs[field] = null;
+            }
+        }
+        const refCheck = await checkTransactionRefs(userId, updatedType, updatedRefs);
+        if (!refCheck.ok) return res.status(400).json({ error: refCheck.error });
 
         // Si la serie existía y ahora se desactiva la recurrencia, purgar las
         // ocurrencias planificadas restantes (cancelar la serie).
@@ -367,10 +423,11 @@ export const updateTransaction = async (req, res) => {
             await sqlTx.execute({
                 sql: `
                     UPDATE transactions
-                    SET type = ?, category = ?, amount_cents = ?, description = ?, description_norm = ?, date = ?, status = ?, recurrence = ?, is_modified = 1, series_id = ?
+                    SET type = ?, category = ?, amount_cents = ?, description = ?, description_norm = ?, date = ?, status = ?, recurrence = ?, is_modified = 1, series_id = ?,
+                        account_id = ?, transfer_account_id = ?, card_id = ?, loan_id = ?
                     WHERE id = ? AND user_id = ?
                 `,
-                args: [updatedType, updatedCategory, toCents(updatedAmount), updatedDescription, normalizeText(updatedDescription), updatedDate, updatedStatus, updatedRecurrence, seriesId, id, userId]
+                args: [updatedType, updatedCategory, toCents(updatedAmount), updatedDescription, normalizeText(updatedDescription), updatedDate, updatedStatus, updatedRecurrence, seriesId, updatedRefs.accountId, updatedRefs.transferAccountId, updatedRefs.cardId, updatedRefs.loanId, id, userId]
             });
 
             // Solo una planned genera la siguiente ocurrencia al confirmarse.
@@ -389,7 +446,11 @@ export const updateTransaction = async (req, res) => {
                     category: updatedCategory,
                     amount: updatedAmount,
                     description: updatedDescription,
-                    series_id: seriesId
+                    series_id: seriesId,
+                    account_id: updatedRefs.accountId,
+                    transfer_account_id: updatedRefs.transferAccountId,
+                    card_id: updatedRefs.cardId,
+                    loan_id: updatedRefs.loanId
                 }, sqlTx);
             }
             await sqlTx.commit();
@@ -407,6 +468,7 @@ export const updateTransaction = async (req, res) => {
             date: updatedDate,
             status: updatedStatus,
             recurrence: updatedRecurrence,
+            ...updatedRefs,
             series_id: seriesId,
             is_modified: 1
         });
@@ -466,7 +528,7 @@ export const exportTransactions = async (req, res) => {
     const userId = req.user.id;
     try {
         const result = await db.execute({
-            sql: `SELECT date, type, category, amount_cents / 100.0 AS amount, description, status, recurrence FROM transactions WHERE user_id = ? ORDER BY date DESC`,
+            sql: `SELECT date, type, category, amount_cents / 100.0 AS amount, description, status, recurrence, account_id, transfer_account_id, card_id, loan_id FROM transactions WHERE user_id = ? ORDER BY date DESC`,
             args: [userId]
         });
 
@@ -475,9 +537,9 @@ export const exportTransactions = async (req, res) => {
             return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
         };
 
-        const header = 'date,type,category,amount,description,status,recurrence';
+        const header = 'date,type,category,amount,description,status,recurrence,account_id,transfer_account_id,card_id,loan_id';
         const lines = result.rows.map(r =>
-            [r.date, r.type, r.category, r.amount, r.description, r.status, r.recurrence].map(escape).join(',')
+            [r.date, r.type, r.category, r.amount, r.description, r.status, r.recurrence, r.account_id, r.transfer_account_id, r.card_id, r.loan_id].map(escape).join(',')
         );
 
         res.setHeader('Content-Type', 'text/csv; charset=utf-8');
@@ -493,8 +555,9 @@ export const exportTransactions = async (req, res) => {
 /**
  * POST /transactions/import
  * Importa transacciones desde CSV (texto plano). Formato por línea:
- * date,type,category,amount,description[,status,recurrence]
- * Valida fila a fila con el contrato Zod; reporta errores sin abortar el resto.
+ * date,type,category,amount,description[,status,recurrence[,account_id,transfer_account_id,card_id,loan_id]]
+ * Valida fila a fila con el contrato Zod (incluida la pertenencia de las
+ * refs); reporta errores sin abortar el resto.
  */
 export const importTransactions = async (req, res) => {
     const userId = req.user.id;
@@ -534,24 +597,35 @@ export const importTransactions = async (req, res) => {
         // Filas fuera del límite de 1000: reportadas, no descartadas en silencio
         const skipped = rawLines.length - startIdx - rows.length;
 
-        // Dedupe: clave (fecha|tipo|céntimos|descripción) contra la BD del
+        // Dedupe: clave (fecha|tipo|céntimos|descripción|refs) contra la BD del
         // usuario y dentro del propio lote — reimportar el mismo archivo no
-        // duplica datos. Céntimos (no float) para claves exactas.
+        // duplica datos. Céntimos (no float) para claves exactas; las refs
+        // forman parte de la clave (mismo día/monto a cuentas distintas no es
+        // duplicado).
+        const refKey = (d) => `${d.accountId || ''}|${d.transferAccountId || ''}|${d.cardId || ''}|${d.loanId || ''}`;
         const existingRes = await db.execute({
-            sql: 'SELECT date, type, amount_cents, description FROM transactions WHERE user_id = ?',
+            sql: 'SELECT date, type, amount_cents, description, account_id, transfer_account_id, card_id, loan_id FROM transactions WHERE user_id = ?',
             args: [userId]
         });
         const existingKeys = new Set(
-            existingRes.rows.map(r => `${r.date}|${r.type}|${r.amount_cents}|${r.description}`)
+            existingRes.rows.map(r => `${r.date}|${r.type}|${r.amount_cents}|${r.description}|${r.account_id || ''}|${r.transfer_account_id || ''}|${r.card_id || ''}|${r.loan_id || ''}`)
         );
         const batchKeys = new Set();
+        // Cache de ownership compartida entre filas: un id referenciado muchas
+        // veces se valida contra la BD una sola vez.
+        const refCache = new Map();
 
         for (const line of rows) {
-            const [date, type, category, amount, description, status = 'completed', recurrence = 'none'] = parseLine(line);
+            const [date, type, category, amount, description, status = 'completed', recurrence = 'none',
+                   account_id = '', transfer_account_id = '', card_id = '', loan_id = ''] = parseLine(line);
             const parsed = addTransactionSchema.safeParse({
                 date, type, category,
                 amount: amount === '' ? undefined : Number(amount),
-                description, status, recurrence
+                description, status, recurrence,
+                accountId: account_id || undefined,
+                transferAccountId: transfer_account_id || undefined,
+                cardId: card_id || undefined,
+                loanId: loan_id || undefined
             });
 
             if (!parsed.success) {
@@ -559,7 +633,14 @@ export const importTransactions = async (req, res) => {
                 continue;
             }
 
-            const dedupeKey = `${parsed.data.date}|${parsed.data.type}|${toCents(parsed.data.amount)}|${parsed.data.description}`;
+            // Pertenencia + coherencia de refs (misma regla que POST /transactions)
+            const refCheck = await checkTransactionRefs(userId, parsed.data.type, parsed.data, refCache);
+            if (!refCheck.ok) {
+                errors.push({ line: line.slice(0, 80), error: refCheck.error });
+                continue;
+            }
+
+            const dedupeKey = `${parsed.data.date}|${parsed.data.type}|${toCents(parsed.data.amount)}|${parsed.data.description}|${refKey(parsed.data)}`;
             if (existingKeys.has(dedupeKey) || batchKeys.has(dedupeKey)) {
                 duplicates++;
                 continue;
@@ -568,8 +649,8 @@ export const importTransactions = async (req, res) => {
             const id = uuidv4();
             const seriesId = parsed.data.recurrence !== 'none' ? id : null;
             await db.execute({
-                sql: 'INSERT INTO transactions (id, user_id, type, category, amount_cents, description, description_norm, date, status, recurrence, series_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-                args: [id, userId, parsed.data.type, parsed.data.category, toCents(parsed.data.amount), parsed.data.description, normalizeText(parsed.data.description), parsed.data.date, parsed.data.status, parsed.data.recurrence, seriesId]
+                sql: 'INSERT INTO transactions (id, user_id, type, category, amount_cents, description, description_norm, date, status, recurrence, series_id, account_id, transfer_account_id, card_id, loan_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                args: [id, userId, parsed.data.type, parsed.data.category, toCents(parsed.data.amount), parsed.data.description, normalizeText(parsed.data.description), parsed.data.date, parsed.data.status, parsed.data.recurrence, seriesId, parsed.data.accountId || null, parsed.data.transferAccountId || null, parsed.data.cardId || null, parsed.data.loanId || null]
             });
             batchKeys.add(dedupeKey);
             imported++;

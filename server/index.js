@@ -20,6 +20,10 @@ import settingsRoutes from './routes/settings.routes.js';
 import adminRoutes from './routes/admin.routes.js';
 import notificationRoutes from './routes/notifications.routes.js';
 import budgetRoutes from './routes/budgets.routes.js';
+import accountRoutes from './routes/accounts.routes.js';
+import cardRoutes from './routes/cards.routes.js';
+import loanRoutes from './routes/loans.routes.js';
+import overviewRoutes from './routes/overview.routes.js';
 
 
 const app = express();
@@ -78,6 +82,10 @@ app.use('/api/settings', settingsRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/budgets', budgetRoutes);
+app.use('/api/accounts', accountRoutes);
+app.use('/api/cards', cardRoutes);
+app.use('/api/loans', loanRoutes);
+app.use('/api/overview', overviewRoutes);
 
 
 // ─────────────────────────────────────────────────

@@ -86,9 +86,11 @@ test.describe.serial('Flujo de usuario completo', () => {
         const row = page.locator('tr', { hasText: 'E2E Metro pendiente' });
         await expect(row.getByText('Pendiente', { exact: true })).toBeVisible();
 
-        // Hover para revelar acciones (opacity-0 → group-hover) y confirmar
-        await row.hover();
-        await row.locator('button[title="Confirmar"]').click();
+        // Hover directo sobre el botón: el hover de la fila se pierde si un
+        // re-render de la lista reemplaza el nodo entre hover y click
+        const confirmBtn = row.locator('button[title="Confirmar"]');
+        await confirmBtn.hover();
+        await confirmBtn.click();
 
         await expect(row.getByText('Confirmado')).toBeVisible();
         await expect(row.getByText('Pendiente', { exact: true })).toHaveCount(0);

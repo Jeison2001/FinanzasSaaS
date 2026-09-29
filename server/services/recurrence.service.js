@@ -19,8 +19,11 @@ export const generateNextRecurrence = async (tx, txClient = db) => {
     // construido desde la API (nunca desde la BD).
     const cents = tx.amount_cents != null ? tx.amount_cents : toCents(tx.amount);
     await txClient.execute({
-        sql: `INSERT INTO transactions (id, user_id, type, category, amount_cents, description, description_norm, date, status, recurrence, series_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        args: [uuidv4(), tx.user_id, tx.type, tx.category, cents, tx.description, normalizeText(tx.description), nextDateStr, 'planned', tx.recurrence, tx.series_id || null]
+        // Las refs a entidades se propagan: una ocurrencia de una card_purchase
+        // recurrente sin card_id (o una transferencia sin cuentas) corrompería
+        // los saldos derivados. Las filas de BD (SELECT *) ya las traen.
+        sql: `INSERT INTO transactions (id, user_id, type, category, amount_cents, description, description_norm, date, status, recurrence, series_id, account_id, transfer_account_id, card_id, loan_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        args: [uuidv4(), tx.user_id, tx.type, tx.category, cents, tx.description, normalizeText(tx.description), nextDateStr, 'planned', tx.recurrence, tx.series_id || null, tx.account_id || null, tx.transfer_account_id || null, tx.card_id || null, tx.loan_id || null]
     });
 };
 

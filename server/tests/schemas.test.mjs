@@ -62,7 +62,11 @@ test('add: formato no YYYY-MM-DD rechazado', () => {
 });
 
 test('add: type inválido rechazado', () => {
-    assert.equal(addTransactionSchema.safeParse({ ...validTx, type: 'transfer' }).success, false);
+    // 'transfer' es válido desde la extensión de tipos de movimiento
+    // (income/expense/transfer/card_purchase/card_payment/loan_payment);
+    // el tipo inválido de referencia ahora es uno fuera de ese enum.
+    assert.equal(addTransactionSchema.safeParse({ ...validTx, type: 'wire' }).success, false);
+    assert.equal(addTransactionSchema.safeParse({ ...validTx, type: 'transfer' }).success, true);
 });
 
 test('add: status inválido rechazado', () => {

@@ -2,7 +2,7 @@
  * Componente raíz. Orquesta autenticación, estado global y layout.
  * Admins ven AdminDashboard salvo que activen forceClientView.
  */
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTranslation } from './locales';
 import { useTransactions } from './hooks/useTransactions';
 import { useFilters } from './hooks/useFilters';
@@ -11,6 +11,8 @@ import { useAuth } from './hooks/useAuth';
 import { useAppStore } from './store/useAppStore';
 import { useSettings } from './hooks/useSettings';
 import { useNotifications } from './hooks/useNotifications';
+import { useOverview } from './hooks/useOverview';
+import { useEntitiesStore } from './store/useEntitiesStore';
 
 import AuthCard from './components/auth/AuthCard';
 import AdminDashboard from './components/admin/AdminDashboard';
@@ -20,6 +22,7 @@ import Toaster from './components/layout/Toaster';
 import KPICards from './components/dashboard/KPICards';
 import Sidebar from './components/dashboard/Sidebar';
 import BudgetsPanel from './components/dashboard/BudgetsPanel';
+import EntitiesPanel from './components/entities/EntitiesPanel';
 import TransactionFilters from './components/transactions/TransactionFilters';
 import TransactionTable from './components/transactions/TransactionTable';
 import AddTransactionModal from './components/transactions/AddTransactionModal';
@@ -47,7 +50,21 @@ const App = () => {
   const { transactions, totalAll, addTransaction, deleteTransaction, editTransaction, confirmOverdueBulk, loadMore, hasMore, loading, refreshTrigger, triggerRefresh } = useTransactions(filters);
   const { notifications, dismissNotification } = useNotifications(refreshTrigger);
   const stats = useStats(refreshTrigger, savingsGoal, period);
+  const { overview, loading: overviewLoading, reload: reloadOverview } = useOverview();
   const currencyLabel = currency; // moneda única por usuario (sin conversión)
+
+  // Cada mutación de movimientos (crear/editar/borrar/importar/confirmar)
+  // incrementa refreshTrigger: los derivados se recalculan en el server y se
+  // recargan — el overview (saldos, usado, pagado del resumen) Y las listas de
+  // entidades (el balance de la fila de cuenta en EntitiesPanel también es
+  // derivado del server). Ambas recargas son compartidas vía useEntitiesStore,
+  // así que panel y modal abierto se actualizan a la vez.
+  useEffect(() => {
+    if (refreshTrigger > 0) {
+      reloadOverview();
+      useEntitiesStore.getState().reload();
+    }
+  }, [refreshTrigger, reloadOverview]);
 
   // Abre el modal en modo edición con la transacción seleccionada
   const handleEditClick = (trx) => {
@@ -121,6 +138,12 @@ const App = () => {
           >
             {t('reports')}
           </button>
+          <button
+            onClick={() => setActiveTab('entidades')}
+            className={`flex-1 sm:flex-none px-6 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'entidades' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-500 hover:bg-slate-50 cursor-pointer'}`}
+          >
+            {t('entidades')}
+          </button>
         </div>
 
         {activeTab === 'transactions' ? (
@@ -182,6 +205,15 @@ const App = () => {
           </div>
         ) : activeTab === 'budgets' ? (
           <BudgetsPanel lang={lang} currency={currencyLabel} t={t} />
+        ) : activeTab === 'entidades' ? (
+          <EntitiesPanel
+            lang={lang}
+            currency={currencyLabel}
+            t={t}
+            overview={overview}
+            overviewLoading={overviewLoading}
+            reloadOverview={reloadOverview}
+          />
         ) : (
           <Reports refreshTrigger={refreshTrigger} lang={lang} currency={currencyLabel} t={t} onOpenImportExport={() => setShowImportModal(true)} />
         )}

@@ -28,3 +28,20 @@ export const categories = {
     income: ['cat_salary', 'cat_freelance', 'cat_investment', 'cat_sales', 'cat_others'],
     expense: ['cat_housing', 'cat_food', 'cat_transport', 'cat_leisure', 'cat_health', 'cat_subs', 'cat_savings', 'cat_others']
 };
+
+/**
+ * Tipos de movimiento y su clave i18n. income/expense reutilizan las keys
+ * existentes; los tipos con entidad requieren referencias (transfer →
+ * cuenta origen+destino; card_purchase/card_payment → tarjeta;
+ * loan_payment → préstamo; income/expense → cuenta).
+ * En KPIs y reportes solo income y expense... y card_purchase cuenta como
+ * gasto; transfer/card_payment/loan_payment no afectan KPIs.
+ */
+export const transactionTypes = [
+    { value: 'income', labelKey: 'income' },
+    { value: 'expense', labelKey: 'expense' },
+    { value: 'transfer', labelKey: 'tx_transfer' },
+    { value: 'card_purchase', labelKey: 'tx_card_purchase' },
+    { value: 'card_payment', labelKey: 'tx_card_payment' },
+    { value: 'loan_payment', labelKey: 'tx_loan_payment' }
+];

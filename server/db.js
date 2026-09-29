@@ -148,6 +148,35 @@ const initDB = async () => {
             // Columna ya existente o BD recién creada — caso esperado, no es error.
         }
 
+        // ── Referencias de entidades en movimientos (NULLables: solo se
+        // rellenan según el tipo — transfer/card_payment/loan_payment) ──
+        // El saldo de cuenta, el usado de tarjeta y lo pagado de préstamo NO
+        // se almacenan: se DERIVAN por agregación SQL de transactions.
+        try {
+            await db.execute('ALTER TABLE transactions ADD COLUMN account_id TEXT');
+            console.log("Schema upgrade: transactions.account_id añadido.");
+        } catch {
+            // Columna ya existente o BD recién creada — caso esperado, no es error.
+        }
+        try {
+            await db.execute('ALTER TABLE transactions ADD COLUMN transfer_account_id TEXT');
+            console.log("Schema upgrade: transactions.transfer_account_id añadido.");
+        } catch {
+            // Columna ya existente o BD recién creada — caso esperado, no es error.
+        }
+        try {
+            await db.execute('ALTER TABLE transactions ADD COLUMN card_id TEXT');
+            console.log("Schema upgrade: transactions.card_id añadido.");
+        } catch {
+            // Columna ya existente o BD recién creada — caso esperado, no es error.
+        }
+        try {
+            await db.execute('ALTER TABLE transactions ADD COLUMN loan_id TEXT');
+            console.log("Schema upgrade: transactions.loan_id añadido.");
+        } catch {
+            // Columna ya existente o BD recién creada — caso esperado, no es error.
+        }
+
         await db.execute(`
             CREATE TABLE IF NOT EXISTS user_settings (
                 user_id TEXT PRIMARY KEY,
@@ -199,6 +228,55 @@ const initDB = async () => {
             )
         `);
 
+        // ── Entidades financieras: cuentas, tarjetas y préstamos ──
+        // Filosofía Entidades + Movimientos: el dinero vive SOLO en
+        // transactions; estos saldos/limites son parámetros de la entidad y
+        // los estados (balance, usado, pagado) se derivan por agregación.
+
+        // Cuentas de dinero propio. El saldo = initial_cents ± movimientos.
+        await db.execute(`
+            CREATE TABLE IF NOT EXISTS accounts (
+                id TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL,
+                name TEXT NOT NULL,
+                initial_cents INTEGER NOT NULL DEFAULT 0,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users (id)
+            )
+        `);
+
+        // Tarjetas de crédito. El 'usado' = SUM(card_purchase) − SUM(card_payment)
+        // de transactions; limit_cents/cut_day/min_payment_pct son parámetros.
+        await db.execute(`
+            CREATE TABLE IF NOT EXISTS credit_cards (
+                id TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL,
+                name TEXT NOT NULL,
+                limit_cents INTEGER NOT NULL,
+                cut_day INTEGER NOT NULL DEFAULT 1,
+                min_payment_pct REAL NOT NULL DEFAULT 5,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users (id)
+            )
+        `);
+
+        // Préstamos. monthly_payment_cents queda fijado en creación/edición
+        // (desde loan.utils: por tasa o por cuota); lo pagado se deriva de
+        // transactions (loan_payment). remaining = principal_cents − pagado.
+        await db.execute(`
+            CREATE TABLE IF NOT EXISTS loans (
+                id TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL,
+                name TEXT NOT NULL,
+                principal_cents INTEGER NOT NULL,
+                annual_rate_pct REAL NOT NULL,
+                installments INTEGER NOT NULL,
+                monthly_payment_cents INTEGER NOT NULL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users (id)
+            )
+        `);
+
         // Índices secundarios para optimización de rendimiento
         await db.execute(`
             CREATE INDEX IF NOT EXISTS idx_transactions_user_date ON transactions (user_id, date DESC)
@@ -217,8 +295,27 @@ const initDB = async () => {
         `);
 
         await db.execute(`
-            CREATE INDEX IF NOT EXISTS idx_budgets_user_period 
+            CREATE INDEX IF NOT EXISTS idx_budgets_user_period
             ON budgets (user_id, month, year)
+        `);
+
+        // Índices de referencias a entidades (joins/agregaciones del overview)
+        await db.execute(`
+            CREATE INDEX IF NOT EXISTS idx_transactions_account
+            ON transactions (account_id)
+            WHERE account_id IS NOT NULL
+        `);
+
+        await db.execute(`
+            CREATE INDEX IF NOT EXISTS idx_transactions_card
+            ON transactions (card_id)
+            WHERE card_id IS NOT NULL
+        `);
+
+        await db.execute(`
+            CREATE INDEX IF NOT EXISTS idx_transactions_loan
+            ON transactions (loan_id)
+            WHERE loan_id IS NOT NULL
         `);
 
         console.log("Database schema initialized gracefully.");

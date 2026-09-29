@@ -44,6 +44,8 @@ npm run build && npm run start
 | GET | `/api/transactions/reports?month&year&startDate&endDate` | Reportes + comparativa vs período anterior |
 | GET/POST | `/api/transactions/export` · `/api/transactions/import` | CSV (export/import) |
 | GET/PUT | `/api/budgets?month&year` | Presupuestos mensuales por categoría |
+| GET/POST/PUT/DELETE | `/api/accounts` · `/api/cards` · `/api/loans` | Entidades financieras (saldos derivados; DELETE en cascada de movimientos) |
+| GET | `/api/overview` | Patrimonio neto + saldos derivados de cuentas, uso de tarjetas y préstamos |
 | GET/PUT | `/api/notifications` · `/api/notifications/:id/read` | Notificaciones in-app |
 | GET/PUT | `/api/settings` | Preferencias (idioma, meta de ahorro, timezone; moneda fijada en registro) |
 | GET | `/api/admin/users` · POST `/api/admin/users/:id/reset` | Panel admin (rol `admin`) |
@@ -54,6 +56,7 @@ npm run build && npm run start
 - Las recurrencias (`daily|weekly|monthly|yearly`) generan la siguiente ocurrencia como `planned`; al vencer pasan a `overdue` — **nada se confirma automáticamente**.
 - `series_id` vincula cada ocurrencia con su ancla: quitar la recurrencia purga las planificadas restantes; borrar el ancla cancela la serie.
 - **Dinero en céntimos**: `amount_cents` (INTEGER) es la única columna física de dinero; la unidad de moneda se deriva en las queries de lectura (`amount_cents/100.0 AS amount`) — aritmética exacta, sin drift float, sin columnas duplicadas.
+- **Entidades financieras**: cuentas, tarjetas de crédito y préstamos con 6 tipos de movimiento (ingreso, gasto, transferencia, compra TC, pago TC, abono). Los saldos se derivan SIEMPRE de los movimientos por agregación SQL; el préstamo admite doble modo (tasa anual o cuota mensual, con tasa implícita por bisección).
 - **Timezone por usuario**: el dispositivo la sincroniza en settings; el CRON horario usa la fecha local de cada usuario para marcar vencidos.
 - Sin migraciones: los cambios de schema en `server/db.js` se aplican con `CREATE TABLE IF NOT EXISTS` y `ALTER TABLE` idempotente en el arranque.
 

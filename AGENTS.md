@@ -44,11 +44,11 @@ FinanzasSaaS/
 │   └── components/               # UI organizada por feature
 ├── server/                       # Backend Express REST API
 │   ├── index.js                  # Entry: CORS, routes, CRON
-│   ├── db.js                     # SCHEMA CANÓNICO — 7 tablas, raw SQL
-│   ├── controllers/              # Lógica de negocio (7 controllers)
-│   ├── routes/                   # Definiciones de rutas (6 archivos, 21 endpoints)
+│   ├── db.js                     # SCHEMA CANÓNICO — 10 tablas, raw SQL
+│   ├── controllers/              # Lógica de negocio (11 controllers)
+│   ├── routes/                   # Definiciones de rutas (10 archivos, 34 endpoints)
 │   ├── middlewares/              # Auth JWT, rate limit, Zod validate
-│   ├── schemas/                  # Contratos Zod (6 schemas)
+│   ├── schemas/                  # Contratos Zod (9 schemas)
 │   ├── services/                 # Email, Recurrence
 │   ├── utils/                    # Date/timezone arithmetic, money (céntimos), text (normalización)
 │   ├── tests/                    # node:test — unitarios + integración (server propio :3998)
@@ -80,6 +80,7 @@ Estos archivos concentran la mayor complejidad y son los más buscados:
 5. **Tailwind v4** se importa en `index.css`. No crear CSS custom salvo excepciones justificadas.
 6. **JWT expira en 365 días**: Riesgo de seguridad conocido. No cambiar sin análisis de impacto.
 7. **Modelo de transacciones**: `planned` → `overdue` → `completed`. Nada se auto-confirma. Series recurrentes vía `series_id` (ancla = transacción origen): quitar recurrencia purga planificadas; borrar ancla cancela la serie. Confirmar una `overdue` NO genera ocurrencia (el CRON ya la creó); solo una `planned` la genera al confirmarse.
+7b. **Entidades financieras** (accounts, credit_cards, loans): los saldos SIEMPRE se derivan por agregación SQL (server/services/entities.service.js) — nunca se almacenan. 6 tipos de movimiento: income, expense, transfer, card_purchase (cuenta como gasto en KPIs/presupuestos/reports), card_payment, loan_payment. Borrar una entidad hace cascada de sus movimientos. income/expense NO exigen account_id en el server (compatibilidad legacy, documentado en entities.service.js); la exigencia vive en el cliente.
 8. **Zod defaults en PUT**: Nunca usar `.partial()` sobre schemas con `.default()` — el default se inyecta en actualizaciones parciales y corrompe datos (ver `updateTransactionSchema`).
 9. **Dinero en céntimos**: `amount_cents` (INTEGER) es la ÚNICA columna física de dinero en `transactions`; la unidad de moneda se deriva en las queries de lectura (`amount_cents / 100.0 AS amount`) — no escribas ni sumes un `amount` físico, no existe. Conversión: `server/utils/money.utils.js`.
 10. **Timezone**: `user_settings.timezone` (IANA, validada con Intl en el schema) la sincroniza el frontend; el CRON horario calcula el "hoy" de cada usuario con `todayInTimeZone` (`date.utils.js`).
@@ -94,12 +95,12 @@ Antes de buscar manualmente en el codebase, verifica si existe una Skill que cub
 | Skill | Área |
 |---|---|
 | `db-schema` | Tablas, columnas, relaciones, server/db.js |
-| `controllers` | 7 controllers, endpoints, lógica de negocio |
-| `zod-contracts` | 6 schemas Zod, validación de API |
+| `controllers` | 11 controllers, endpoints, lógica de negocio |
+| `zod-contracts` | 9 schemas Zod, validación de API |
 | `zustand-stores` | 2 stores, estado global frontend |
-| `react-hooks` | 8 hooks, data fetching server-side, filtering |
+| `react-hooks` | 10 hooks, data fetching server-side, filtering |
 | `axios-client` | HTTP singleton, interceptors, auth |
-| `api-routes` | 21 endpoints, middleware stack |
+| `api-routes` | 34 endpoints, middleware stack |
 | `i18n-keys` | 133 keys × 3 idiomas, hook useTranslation, auditoría incluida |
 | `domain-constants` | Monedas, categorías, meses, años |
 | `server-entry` | Express setup, CRON, job worker boot |

@@ -1,6 +1,6 @@
 ---
 name: db-schema
-description: Database schema definition for FinanzasSaaS. 7 tables (users, transactions, user_settings, budgets, password_reset_tokens, cron_locks, user_notifications) defined via raw SQL in server/db.js. No ORM, no migrations framework. Schema is idempotent (CREATE TABLE IF NOT EXISTS + ALTER TABLE idempotente). Turso/libSQL client.
+description: Database schema definition for FinanzasSaaS. 10 tables (users, transactions, user_settings, accounts, credit_cards, loans, budgets, password_reset_tokens, cron_locks, user_notifications) defined via raw SQL in server/db.js. No ORM, no migrations framework. Schema is idempotent (CREATE TABLE IF NOT EXISTS + ALTER TABLE idempotente). Turso/libSQL client.
 ---
 
 ## Canonical Source
@@ -13,6 +13,9 @@ description: Database schema definition for FinanzasSaaS. 7 tables (users, trans
 | `transactions` | `id` (uuid) | `user_id → users.id` | Core: type, category, amount_cents (INTEGER, única fuente de dinero), description + description_norm (búsqueda sin acentos), date, status (planned/overdue/completed), recurrence, series_id (ancla de serie) |
 | `user_settings` | `user_id` | `user_id → users.id` | Prefs: savings_goal, currency (fijada en registro), language, timezone (IANA, para el CRON) |
 | `budgets` | `id` (uuid) | `user_id → users.id` | Presupuesto mensual por categoría: UNIQUE(user_id, category, month, year) |
+| `accounts` | `id` (uuid) | `user_id → users.id` | Cuenta de dinero: name, initial_cents. El saldo SE DERIVA de los movimientos (entities.service.js) |
+| `credit_cards` | `id` (uuid) | `user_id → users.id` | Tarjeta: limit_cents, cut_day, min_payment_pct. El usado SE DERIVA (compra_tc − pago_tc) |
+| `loans` | `id` (uuid) | `user_id → users.id` | Préstamo: principal_cents, annual_rate_pct, installments, monthly_payment_cents. Lo pagado SE DERIVA (loan_payment) |
 | `password_reset_tokens` | `token` | `user_id → users.id` | 1-hour expiry tokens for password reset |
 | `cron_locks` | `id` | — | Deduplicación del CRON horario (`cron_<fecha>_<hora>`) y locks de recurrencia por usuario |
 | `user_notifications` | `id` (uuid) | `user_id → users.id` | Notificaciones in-app: type, message_key (i18n), is_read |

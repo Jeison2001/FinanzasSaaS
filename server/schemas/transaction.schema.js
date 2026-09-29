@@ -9,14 +9,28 @@ const dateLike = z.string()
         return dt.getFullYear() === y && dt.getMonth() === m - 1 && dt.getDate() === dd;
     }, 'Date must be a real calendar date');
 
+/**
+ * Referencias a entidades financieras (cuentas/tarjetas/préstamos). Solo son
+ * ids — la pertenencia al usuario y la coherencia por tipo las valida el
+ * controller contra la BD (un uuid bien formado no garantiza ownership).
+ */
+const uuidRef = z.string().uuid('Invalid entity reference ID');
+const refFields = {
+    accountId: uuidRef.nullish(),
+    transferAccountId: uuidRef.nullish(),
+    cardId: uuidRef.nullish(),
+    loanId: uuidRef.nullish()
+};
+
 export const addTransactionSchema = z.object({
-    type: z.enum(['income', 'expense']),
+    type: z.enum(['income', 'expense', 'transfer', 'card_purchase', 'card_payment', 'loan_payment']),
     category: z.string().min(1, 'Category is required'),
     amount: z.coerce.number().positive('Amount must be greater than 0'),
     description: z.string().min(1, 'Description is required'),
     date: dateLike,
     status: z.enum(['planned', 'completed']),
-    recurrence: z.enum(['none', 'daily', 'weekly', 'monthly', 'yearly']).default('none')
+    recurrence: z.enum(['none', 'daily', 'weekly', 'monthly', 'yearly']).default('none'),
+    ...refFields
 });
 
 /**
@@ -27,7 +41,7 @@ export const addTransactionSchema = z.object({
  * Por eso se definen los campos explícitamente sin default.
  */
 export const updateTransactionSchema = z.object({
-    type: z.enum(['income', 'expense']).optional(),
+    type: z.enum(['income', 'expense', 'transfer', 'card_purchase', 'card_payment', 'loan_payment']).optional(),
     category: z.string().min(1, 'Category is required').optional(),
     amount: z.coerce.number().positive('Amount must be greater than 0').optional(),
     description: z.string().min(1, 'Description is required').optional(),
@@ -35,7 +49,10 @@ export const updateTransactionSchema = z.object({
     // 'overdue' SOLO en update: editar una vencida no debe fallar con 400.
     // En creación sigue rechazado — overdue lo produce el sistema.
     status: z.enum(['planned', 'completed', 'overdue']).optional(),
-    recurrence: z.enum(['none', 'daily', 'weekly', 'monthly', 'yearly']).optional()
+    recurrence: z.enum(['none', 'daily', 'weekly', 'monthly', 'yearly']).optional(),
+    // Referencias a entidades: null explícito PERMITE limpiar una ref heredada
+    // al cambiar el tipo. Sin defaults — el PUT parcial no debe inyectar nada.
+    ...refFields
 });
 
 export const importTransactionsSchema = z.object({

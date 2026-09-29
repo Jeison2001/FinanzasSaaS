@@ -1,6 +1,6 @@
 ---
 name: api-routes
-description: Express route definitions in server/routes/. 6 route files mount 21 endpoints under /api. Auth routes are rate-limited (authLimiter, 15/15min) and Zod-validated; import CSV additionally uses importLimiter (30/min). All routes except /api/auth require JWT via authenticateToken.
+description: Express route definitions in server/routes/. 10 route files mount 34 endpoints under /api. Auth routes are rate-limited (authLimiter, 15/15min) and Zod-validated; import CSV additionally uses importLimiter (30/min). All routes except /api/auth require JWT via authenticateToken.
 ---
 
 ## Files (server/routes/)
@@ -12,6 +12,8 @@ description: Express route definitions in server/routes/. 6 route files mount 21
 | `settings.routes.js` | `/api/settings` | GET '' · PUT '' (timezone incluida, COALESCE) |
 | `admin.routes.js` | `/api/admin` | GET users · POST users/:userId/reset (transaccional, borra budgets) |
 | `notifications.routes.js` | `/api/notifications` | GET '' · PUT :id/read |
+| `accounts.routes.js` · `cards.routes.js` · `loans.routes.js` | `/api/accounts` · `/api/cards` · `/api/loans` | CRUD completo; DELETE en cascada de movimientos vinculados |
+| `overview.routes.js` | `/api/overview` | GET patrimonio neto + saldos derivados |
 
 ## Orden de middleware
 1. Global (index.js): trust proxy → security headers → CORS → `express.json({ limit: '600kb' })`
