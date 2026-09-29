@@ -72,5 +72,6 @@ npm run build && npm run start
 | `npm run test:e2e` | 4 flujos E2E en Edge real (registro+moneda, crear, confirmar, presupuestos); auto-limpia su usuario de prueba. Usa `channel: msedge` — sin descargas del CDN de Playwright |
 | `node server/smoke-test.mjs` | Smoke test de la API (15 bloques; requiere server en :3999) |
 | `node server/i18n-audit.mjs` | Auditoría i18n: keys usadas/definidas y paridad es/en/ca |
+| `node server/prod-smoke.mjs` | Smoke de PRODUCCIÓN post-despliegue (16 aserciones; usuario temporal auto-limpiado; PROD_URL para apuntar a otro entorno) |
 | `node server/cleanup-orphan.mjs` | Elimina usuarios de prueba residuales (smoketest_/debug_/inttest_/dupcheck_) |
 | `node migrate.js --force` | Migración one-shot local → Turso (**borra datos remotos**) |

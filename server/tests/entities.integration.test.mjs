@@ -223,7 +223,7 @@ test('préstamos: modo tasa (cuota = referencia externa 888.49) y modo cuota (ta
     const byRate = await api('/loans', { method: 'POST', body: JSON.stringify({ name: 'Préstamo coche', principal_amount: 10000, installments: 12, annual_rate_pct: 12 }) }, token);
     assert.equal(byRate.status, 201);
     assert.equal(byRate.body.monthly_payment_amount, 888.49, '10000 al 12% en 12 meses → cuota 888.49 (calculadora estándar)');
-    assert.equal(byRate.body.remaining, 10000);
+    assert.equal(byRate.body.remaining, 10661.88, 'total a pagar (888.49 × 12) pendiente al crear');
     assert.equal(byRate.body.paid, 0);
     assert.equal(byRate.body.installmentsPaid, 0);
     loan1 = byRate.body.id;
@@ -257,7 +257,7 @@ test('préstamos: loan_payment deriva pagado/remaining/cuotas pagadas', async ()
     const list = await api('/loans', {}, token);
     const loan = list.body.find(l => l.id === loan1);
     assert.equal(loan.paid, 888.49);
-    assert.equal(loan.remaining, 9111.51, '10000 − 888.49');
+    assert.equal(loan.remaining, 9773.39, 'total 10661.88 − 888.49 pagado');
     assert.equal(loan.installmentsPaid, 1);
 });
 
@@ -267,11 +267,11 @@ test('overview: netWorth = cuentas − tarjetas − préstamos, con listas deriv
     assert.equal(r.status, 200);
     assert.equal(r.body.accountsTotal, 161.51, '(−138.49) + 300');
     assert.equal(r.body.cardsUsed, 400);
-    assert.equal(r.body.loansRemaining, 19111.51, '9111.51 + 10000');
+    assert.equal(r.body.loansRemaining, 21773.39, '9773.39 + 12000');
 
     const expectedNet = r.body.accountsTotal - r.body.cardsUsed - r.body.loansRemaining;
     assert.ok(Math.abs(r.body.netWorth - expectedNet) < 1e-6, `netWorth ${r.body.netWorth} ≈ ${expectedNet}`);
-    assert.ok(Math.abs(r.body.netWorth - (-19350)) < 1e-6);
+    assert.ok(Math.abs(r.body.netWorth - (-22011.88)) < 1e-6, '161.51 − 400 − 21773.39');
 
     const acc = r.body.accounts.find(a => a.id === acc1);
     assert.equal(acc.balance, -138.49);
@@ -280,7 +280,7 @@ test('overview: netWorth = cuentas − tarjetas − préstamos, con listas deriv
     assert.equal(card.limit, 2000);
     assert.equal(card.minPayment, 40);
     const loan = r.body.loans.find(l => l.id === loan1);
-    assert.equal(loan.remaining, 9111.51);
+    assert.equal(loan.remaining, 9773.39);
     assert.equal(loan.monthlyPayment, 888.49);
     assert.equal(loan.installmentsPaid, 1);
 });

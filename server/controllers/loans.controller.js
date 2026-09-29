@@ -9,8 +9,13 @@ import { getLoanPaid } from '../services/entities.service.js';
  * CRUD de préstamos. monthly_payment_cents y annual_rate_pct quedan fijados
  * en creación/edición (uno dado, el otro calculado con loan.utils); lo
  * pagado NUNCA se almacena: se deriva de transactions (loan_payment,
- * completados). remaining = principal_cents − pagado.
+ * completados). remaining = total a pagar (cuota × cuotas) − pagado, acotado
+ * a 0: es el modelo coherente con la UI de cuotas (saldo 0 ⟺ 12/12 cuotas)
+ * y nunca produce saldo negativo en un préstamo terminado.
  */
+
+/** Total a pagar del préstamo en céntimos: cuota × número de cuotas. */
+const loanTotalCents = (row) => (Number(row.monthly_payment_cents) || 0) * (Number(row.installments) || 0);
 
 /**
  * Recalcula el par (tasa, cuota) en céntimos a partir de un modo explícito:
@@ -40,7 +45,7 @@ const toLoanDto = (row, paidCents) => {
         installments: row.installments,
         monthly_payment_amount: fromCents(paymentCents),
         paid: fromCents(paid),
-        remaining: fromCents(principalCents - paid),
+        remaining: fromCents(Math.max(loanTotalCents(row) - paid, 0)),
         // Cuotas COMPLETAS abonadas: floor no sobreestima pagos parciales
         // (media cuota no cuenta como cuota) y respeta la tolerancia al céntimo
         // cuando la cuota divide exacto (p.ej. 88849 × 3 = 266547 → 3).

@@ -65,10 +65,11 @@ export const getOverview = async (req, res) => {
 
         let loansRemainingC = 0;
         const loans = loansRes.rows.map(r => {
-            const principalCents = Number(r.principal_cents) || 0;
             const paymentCents = Number(r.monthly_payment_cents) || 0;
             const paidC = paid.get(r.id) || 0;
-            const remainingC = principalCents - paidC;
+            // Mismo modelo que toLoanDto: total a pagar (cuota × cuotas) − pagado,
+            // acotado a 0 — coherente con las cuotas pagadas y sin saldo negativo.
+            const remainingC = Math.max(paymentCents * (Number(r.installments) || 0) - paidC, 0);
             loansRemainingC += remainingC;
             return {
                 id: r.id,
