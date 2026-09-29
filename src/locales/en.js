@@ -182,5 +182,10 @@ export const translationsEn = {
     cancelar: "Cancel",
     opcional: "Optional",
     cuotaNoCubre: "The payment does not cover the principal within the given installments.",
-    cuentasDistintas: "Source and destination accounts must be different."
+    cuentasDistintas: "Source and destination accounts must be different.",
+    orphansBanner: "You have {n} historical transactions without an account (net {amount})",
+    orphansAssign: "Assign to this account",
+    orphansConfirm: "Assign the {n} historical transactions to this account? You can reassign them later by editing each transaction.",
+    orphansDone: "{n} transactions assigned to {name}",
+    orphansNoAccounts: "Create an account first to assign your history"
 };

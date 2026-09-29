@@ -182,5 +182,10 @@ export const translationsCa = {
     cancelar: "Cancel·la",
     opcional: "Opcional",
     cuotaNoCubre: "La quota no cobreix el capital en el nombre de quotes indicat.",
-    cuentasDistintas: "El compte d'origen i el de destí han de ser diferents."
+    cuentasDistintas: "El compte d'origen i el de destí han de ser diferents.",
+    orphansBanner: "Tens {n} moviments històrics sense compte (net {amount})",
+    orphansAssign: "Assigna a aquest compte",
+    orphansConfirm: "Vols assignar els {n} moviments històrics a aquest compte? Els podràs reassignar després editant cada transacció.",
+    orphansDone: "{n} moviments assignats a {name}",
+    orphansNoAccounts: "Crea primer un compte per assignar el teu historial"
 };

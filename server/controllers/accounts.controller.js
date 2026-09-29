@@ -82,6 +82,71 @@ export const updateAccount = async (req, res) => {
     }
 };
 
+/**
+ * POST /accounts/:id/adopt-orphans — asigna a esta cuenta TODOS los
+ * income/expense históricos sin cuenta (huérfanos legacy pre-entidades).
+ * Los tipos con semántica propia (transfer/card_purchase/card_payment/
+ * loan_payment) NO se tocan: referencian otras entidades o mueven dinero
+ * entre cuentas — reasignarlos rompería su significado.
+ *
+ * Cantidades reales asignadas: income/expense se suman ANTES del UPDATE
+ * (la asignación vacía el conjunto que suman). Todo dentro de una
+ * transacción 'write' que también revalida la pertenencia de la cuenta,
+ * para que un DELETE concurrente no deje huérfanos apuntando a una cuenta
+ * inexistente. 404 si la cuenta no existe o es de otro usuario.
+ */
+export const adoptOrphans = async (req, res) => {
+    const userId = req.user.id;
+    const { id } = req.params;
+
+    try {
+        const sqlTx = await db.transaction('write');
+        try {
+            const found = await sqlTx.execute({
+                sql: 'SELECT id FROM accounts WHERE id = ? AND user_id = ?',
+                args: [id, userId]
+            });
+            if (found.rows.length === 0) {
+                await sqlTx.rollback();
+                return res.status(404).json({ error: 'Account not found' });
+            }
+
+            const summary = await sqlTx.execute({
+                sql: `
+                    SELECT COUNT(*) AS assigned,
+                           SUM(CASE WHEN type = 'income' THEN amount_cents ELSE 0 END) AS income_c,
+                           SUM(CASE WHEN type = 'expense' THEN amount_cents ELSE 0 END) AS expense_c
+                    FROM transactions
+                    WHERE user_id = ? AND type IN ('income', 'expense') AND account_id IS NULL
+                `,
+                args: [userId]
+            });
+            const row = summary.rows[0] || {};
+            const incomeC = Number(row.income_c) || 0;
+            const expenseC = Number(row.expense_c) || 0;
+
+            await sqlTx.execute({
+                sql: `UPDATE transactions SET account_id = ? WHERE user_id = ? AND type IN ('income', 'expense') AND account_id IS NULL`,
+                args: [id, userId]
+            });
+            await sqlTx.commit();
+
+            res.json({
+                assigned: Number(row.assigned) || 0,
+                income: fromCents(incomeC),
+                expense: fromCents(expenseC),
+                net: fromCents(incomeC - expenseC)
+            });
+        } catch (txErr) {
+            await sqlTx.rollback();
+            throw txErr;
+        }
+    } catch (err) {
+        logger.error({ err }, '[POST /accounts/:id/adopt-orphans] Error al asignar movimientos huérfanos');
+        res.status(500).json({ error: 'Failed to adopt orphan transactions' });
+    }
+};
+
 export const deleteAccount = async (req, res) => {
     const userId = req.user.id;
     const { id } = req.params;

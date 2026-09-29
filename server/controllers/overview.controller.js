@@ -11,18 +11,33 @@ import { getAccountFlows, getCardUsage, getLoanPaid } from '../services/entities
  * evitar drift float en las sumas).
  *
  * netWorth = cuentas − usado de tarjetas − saldo pendiente de préstamos.
+ * orphans = resumen de income/expense históricos sin cuenta (ruta legacy
+ * pre-entidades): count + neto, en la MISMA query agregada (sin N+1). Los
+ * tipos con semántica propia (transfer/card_purchase/card_payment/
+ * loan_payment) quedan fuera por construcción: exigen su entidad y no
+ * aterrizan en cuentas como income/expense.
  */
 export const getOverview = async (req, res) => {
     const userId = req.user.id;
 
     try {
-        const [accountsRes, cardsRes, loansRes, flows, usage, paid] = await Promise.all([
+        const [accountsRes, cardsRes, loansRes, flows, usage, paid, orphansRes] = await Promise.all([
             db.execute({ sql: 'SELECT * FROM accounts WHERE user_id = ? ORDER BY created_at, id', args: [userId] }),
             db.execute({ sql: 'SELECT * FROM credit_cards WHERE user_id = ? ORDER BY created_at, id', args: [userId] }),
             db.execute({ sql: 'SELECT * FROM loans WHERE user_id = ? ORDER BY created_at, id', args: [userId] }),
             getAccountFlows(userId),
             getCardUsage(userId),
-            getLoanPaid(userId)
+            getLoanPaid(userId),
+            db.execute({
+                sql: `
+                    SELECT COUNT(*) AS n,
+                           SUM(CASE WHEN type = 'income' THEN amount_cents ELSE 0 END) AS income_c,
+                           SUM(CASE WHEN type = 'expense' THEN amount_cents ELSE 0 END) AS expense_c
+                    FROM transactions
+                    WHERE user_id = ? AND type IN ('income', 'expense') AND account_id IS NULL
+                `,
+                args: [userId]
+            })
         ]);
 
         // Sumas agregadas en céntimos (enteros exactos); conversión a unidades
@@ -68,6 +83,12 @@ export const getOverview = async (req, res) => {
             };
         });
 
+        // Huérfanos: agregado sin GROUP BY → siempre exactamente 1 fila
+        // (SUM NULL → 0 cuando no hay huérfanos).
+        const orphansRow = orphansRes.rows[0] || {};
+        const orphansIncomeC = Number(orphansRow.income_c) || 0;
+        const orphansExpenseC = Number(orphansRow.expense_c) || 0;
+
         res.json({
             accountsTotal: fromCents(accountsTotalC),
             cardsUsed: fromCents(cardsUsedC),
@@ -75,7 +96,11 @@ export const getOverview = async (req, res) => {
             netWorth: fromCents(accountsTotalC - cardsUsedC - loansRemainingC),
             accounts,
             cards,
-            loans
+            loans,
+            orphans: {
+                count: Number(orphansRow.n) || 0,
+                net: fromCents(orphansIncomeC - orphansExpenseC)
+            }
         });
     } catch (err) {
         logger.error({ err }, '[GET /overview] Error al calcular el resumen financiero');

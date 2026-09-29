@@ -10,7 +10,7 @@
  * recargan ambos.
  */
 import React, { useState, useMemo } from 'react';
-import { Wallet, CreditCard, Landmark, Sparkles, Plus, Pencil, Trash2 } from 'lucide-react';
+import { Wallet, CreditCard, Landmark, Sparkles, Plus, Pencil, Trash2, AlertCircle } from 'lucide-react';
 import axiosClient from '../../api/axiosClient';
 import { useEntities } from '../../hooks/useEntities';
 import { useAppStore } from '../../store/useAppStore';
@@ -92,6 +92,8 @@ const EntitiesPanel = ({ lang, currency, t, overview, overviewLoading, reloadOve
     const [accountDraft, setAccountDraft] = useState(emptyAccountDraft);
     const [cardDraft, setCardDraft] = useState(emptyCardDraft);
     const [loanDraft, setLoanDraft] = useState(emptyLoanDraft);
+    const [adoptTarget, setAdoptTarget] = useState(''); // id de cuenta del banner de huérfanos
+    const [adopting, setAdopting] = useState(false);
 
     const notifyError = (err) => {
         const { pushToast } = useAppStore.getState();
@@ -245,6 +247,35 @@ const EntitiesPanel = ({ lang, currency, t, overview, overviewLoading, reloadOve
         }
     };
 
+    // ── Huérfanos legacy: income/expense históricos sin cuenta ──────────
+    // La decisión de a qué cuenta van es del USUARIO: resumen exacto en el
+    // banner (overview.orphans), elección de cuenta y confirmación previa.
+    const orphans = overview?.orphans;
+    const orphanCount = orphans?.count ?? 0;
+    // Selección por defecto: la primera cuenta, sin useEffect (la lista del
+    // store manda en cuanto llega).
+    const adoptTargetId = adoptTarget || accounts[0]?.id || '';
+
+    const handleAdoptOrphans = async () => {
+        const target = accounts.find(a => a.id === adoptTargetId);
+        if (!target) return;
+        if (!window.confirm(t('orphansConfirm').replace('{n}', String(orphanCount)))) return;
+        setAdopting(true);
+        try {
+            const res = await axiosClient.post(`/accounts/${target.id}/adopt-orphans`);
+            const { pushToast } = useAppStore.getState();
+            pushToast(
+                t('orphansDone').replace('{n}', String(res.data?.assigned ?? orphanCount)).replace('{name}', target.name),
+                'success'
+            );
+            refreshAll();
+        } catch (err) {
+            notifyError(err);
+        } finally {
+            setAdopting(false);
+        }
+    };
+
     const inputCls = "w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 text-sm font-bold";
     const labelCls = "text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1";
     const primaryBtnCls = "bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white px-5 py-2 rounded-xl flex items-center gap-2 transition-all shadow-md font-bold text-sm cursor-pointer";
@@ -299,6 +330,39 @@ const EntitiesPanel = ({ lang, currency, t, overview, overviewLoading, reloadOve
             </div>
 
             {(overviewLoading && !overview) && <Spinner />}
+
+            {/* Huérfanos legacy: movimientos históricos sin cuenta — misma
+                estética que la alerta de vencidos de KPICards. Con cuentas:
+                selector + asignación con confirmación. Sin cuentas: banner
+                sin selector y botón deshabilitado con title explicativo. */}
+            {orphanCount > 0 && (
+                <div className="bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3 flex flex-wrap items-center gap-x-3 gap-y-2 shadow-sm">
+                    <AlertCircle size={18} className="text-amber-600 shrink-0" />
+                    <p className="text-sm font-bold text-amber-800 flex-1 min-w-0">
+                        {t('orphansBanner').replace('{n}', String(orphanCount)).replace('{amount}', formatCurrency(orphans.net ?? 0, lang, currency))}
+                    </p>
+                    {accounts.length > 0 && (
+                        <select
+                            value={adoptTargetId}
+                            onChange={(e) => setAdoptTarget(e.target.value)}
+                            aria-label={t('cuenta')}
+                            className="px-3 py-2 bg-white border border-amber-200 rounded-xl text-sm font-bold text-amber-800 outline-none focus:ring-2 focus:ring-amber-400 cursor-pointer shrink-0"
+                        >
+                            {accounts.map(a => (
+                                <option key={a.id} value={a.id}>{a.name}</option>
+                            ))}
+                        </select>
+                    )}
+                    <button
+                        onClick={handleAdoptOrphans}
+                        disabled={!adoptTargetId || adopting}
+                        title={accounts.length > 0 ? t('orphansAssign') : t('orphansNoAccounts')}
+                        className="bg-amber-500 hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed text-white px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-sm cursor-pointer shrink-0"
+                    >
+                        {t('orphansAssign')}
+                    </button>
+                </div>
+            )}
 
             {/* Cuentas */}
             <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm space-y-5">

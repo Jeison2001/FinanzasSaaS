@@ -16,6 +16,7 @@ const EMAIL = `e2e_ent_${Date.now()}@finanzassaa.dev`;
 const API = 'http://localhost:3997/api';
 const ACCOUNT_NAME = 'Cuenta E2E Entidades';
 const CARD_NAME = 'Visa E2E Entidades';
+const ORPHAN_ACCOUNT_NAME = 'Cuenta E2E Huérfanos';
 
 test.describe.serial('Feature Entidades: cuenta → ingreso → saldo → tarjeta → compra → uso', () => {
     let page;
@@ -163,6 +164,56 @@ test.describe.serial('Feature Entidades: cuenta → ingreso → saldo → tarjet
         expect(overview.netWorth).toBeCloseTo(1169.5, 2);
         expect(overview.cards[0].used).toBeCloseTo(80.5, 2);
         expect(overview.cards[0].minPayment).toBeCloseTo(8.05, 2); // 10% de 80,50
+    });
+
+    test('huérfanos: banner con el neto exacto → adoptar → banner fuera y saldo neto en la fila', async () => {
+        // Sembrar 2 movimientos históricos SIN cuenta vía API (500 − 200 = 300)
+        // ANTES de crear la cuenta de este test: heredan la ruta legacy
+        // pre-entidades (income/expense sin account_id son válidos en server).
+        const token = await page.evaluate(() => localStorage.getItem('token'));
+        const seed = async (body) => {
+            const res = await fetch(`${API}/transactions`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                body: JSON.stringify(body)
+            });
+            expect(res.status).toBe(201);
+        };
+        await seed({ type: 'income', category: 'cat_salary', amount: 500, description: 'E2E huérfano ingreso', date: '2026-01-10', status: 'completed' });
+        await seed({ type: 'expense', category: 'cat_food', amount: 200, description: 'E2E huérfano gasto', date: '2026-01-11', status: 'completed' });
+
+        // Crear la cuenta desde el panel: el refresh tras guardar trae el
+        // overview con los huérfanos → banner ámbar visible con el neto.
+        await page.getByRole('button', { name: 'Nueva Cuenta' }).click();
+        const form = page.locator('form').filter({ hasText: 'Saldo inicial' });
+        await form.locator('input[type="text"]').fill(ORPHAN_ACCOUNT_NAME);
+        await form.locator('input[type="number"]').fill('0');
+        await form.getByRole('button', { name: 'Guardar' }).click();
+
+        const banner = page.locator('div.bg-amber-50', { hasText: 'movimientos históricos' });
+        await expect(banner).toBeVisible();
+        await expect(banner.getByText(/2 movimientos históricos sin cuenta/)).toBeVisible();
+        await expect(banner.getByText(/300,00/)).toBeVisible(); // neto: 500 − 200
+
+        // Adoptar en la cuenta nueva: window.confirm nativo → aceptar.
+        const bannerSelect = banner.locator('select');
+        await expect(bannerSelect.locator('option', { hasText: ORPHAN_ACCOUNT_NAME })).toBeAttached();
+        await bannerSelect.selectOption({ label: ORPHAN_ACCOUNT_NAME });
+        page.once('dialog', (dialog) => dialog.accept());
+        await banner.getByRole('button', { name: 'Asignar a esta cuenta' }).click();
+
+        // El banner desaparece (overview recargado: orphans.count = 0) y la
+        // fila de la cuenta muestra el saldo neto derivado por el server.
+        await expect(banner).toHaveCount(0);
+        const accRow = page.locator('div.bg-slate-50.rounded-2xl', { hasText: ORPHAN_ACCOUNT_NAME });
+        await expect(accRow.getByText(/300,00/)).toBeVisible();
+
+        // La verdad importa: agregación SQL del server, cero huérfanos.
+        const res = await fetch(`${API}/overview`, { headers: { Authorization: `Bearer ${token}` } });
+        const overview = await res.json();
+        expect(overview.orphans.count).toBe(0);
+        const adopted = overview.accounts.find(a => a.name === ORPHAN_ACCOUNT_NAME);
+        expect(adopted.balance).toBe(300);
     });
 
     test.afterAll(async () => {

@@ -182,5 +182,10 @@ export const translationsEs = {
     cancelar: "Cancelar",
     opcional: "Opcional",
     cuotaNoCubre: "La cuota no cubre el capital en el número de cuotas indicado.",
-    cuentasDistintas: "La cuenta origen y la destino deben ser distintas."
+    cuentasDistintas: "La cuenta origen y la destino deben ser distintas.",
+    orphansBanner: "Tienes {n} movimientos históricos sin cuenta (neto {amount})",
+    orphansAssign: "Asignar a esta cuenta",
+    orphansConfirm: "¿Asignar los {n} movimientos históricos a esta cuenta? Podrás reasignarlos después editando cada transacción.",
+    orphansDone: "{n} movimientos asignados a {name}",
+    orphansNoAccounts: "Crea primero una cuenta para asignar tu historial"
 };

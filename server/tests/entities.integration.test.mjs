@@ -378,3 +378,53 @@ test('seguridad: mover/usar/editar/borrar entidad ajena → 400/404; sin token �
     assert.equal((await api('/accounts')).status, 401);
     assert.equal((await api('/overview')).status, 401);
 });
+
+// ── 11. HUÉRFANOS: resumen en overview + adopción masiva ──────────────
+test('overview: orphans resume income/expense sin cuenta y excluye card_payment sin cuenta', async () => {
+    // Huérfano preexistente del suite: income 10 planned sin cuenta (test de
+    // coherencia). También existe un card_payment sin cuenta (50, completed,
+    // test de tarjeta): por columna sería huérfano, por TIPO no debe contar.
+    const seedIncome = await api('/transactions', { method: 'POST', body: JSON.stringify({ type: 'income', category: 'cat_salary', amount: 500, description: 'Huérfano ingreso', date: '2026-08-27', status: 'completed' }) }, token);
+    assert.equal(seedIncome.status, 201, 'income sin account_id se acepta (ruta legacy)');
+    const seedExpense = await api('/transactions', { method: 'POST', body: JSON.stringify({ type: 'expense', category: 'cat_food', amount: 200, description: 'Huérfano gasto', date: '2026-08-27', status: 'completed' }) }, token);
+    assert.equal(seedExpense.status, 201);
+
+    const r = await api('/overview', {}, token);
+    assert.equal(r.status, 200);
+    assert.equal(r.body.orphans.count, 3, '2 sembrados + 1 planned preexistente (el card_payment sin cuenta NO cuenta)');
+    assert.ok(Math.abs(r.body.orphans.net - 310) < 1e-6, '10 (planned) + 500 − 200 = 310');
+});
+
+test('adopt-orphans: asigna solo los huérfanos income/expense; 2ª llamada → 0; balance refleja el neto', async () => {
+    const balanceBefore = await getAccountBalance(acc2); // 360 (300 transfer + 50 import + 10 movida)
+
+    const adopt = await api(`/accounts/${acc2}/adopt-orphans`, { method: 'POST' }, token);
+    assert.equal(adopt.status, 200);
+    assert.equal(adopt.body.assigned, 3);
+    assert.ok(Math.abs(adopt.body.income - 510) < 1e-6, '500 (nuevo) + 10 (planned preexistente)');
+    assert.ok(Math.abs(adopt.body.expense - 200) < 1e-6);
+    assert.ok(Math.abs(adopt.body.net - 310) < 1e-6);
+
+    const again = await api(`/accounts/${acc2}/adopt-orphans`, { method: 'POST' }, token);
+    assert.equal(again.status, 200);
+    assert.equal(again.body.assigned, 0, 'segunda llamada: ya no quedan huérfanos');
+    assert.ok(Math.abs(again.body.net) < 1e-6);
+
+    // El balance derivado solo mueve dinero COMPLETADO: +500 −200 (el planned
+    // de 10 se asigna pero no toca saldos).
+    assert.ok(Math.abs((await getAccountBalance(acc2)) - (balanceBefore + 300)) < 1e-6, '360 + 500 − 200 = 660');
+
+    // Los tipos con semántica propia quedan intactos: el card_payment sin
+    // cuenta (50) sigue sin account_id y el usado de la tarjeta no cambia.
+    const list = await api('/cards', {}, token);
+    assert.equal(list.body.find(c => c.id === card1)?.used, 400);
+});
+
+test('adopt-orphans: 404 si la cuenta no existe o es ajena; nada se asigna', async () => {
+    assert.equal((await api('/accounts/00000000-0000-0000-0000-000000000000/adopt-orphans', { method: 'POST' }, token)).status, 404, 'cuenta inexistente');
+    assert.equal((await api(`/accounts/${accB}/adopt-orphans`, { method: 'POST' }, token)).status, 404, 'cuenta de B con token de A');
+    assert.equal((await api(`/accounts/${acc1}/adopt-orphans`, { method: 'POST' }, tokenB)).status, 404, 'cuenta de A con token de B');
+
+    const overview = await api('/overview', {}, token);
+    assert.equal(overview.body.orphans.count, 0, 'los 404 no asignan nada (el adopt anterior ya vació el conjunto)');
+});
