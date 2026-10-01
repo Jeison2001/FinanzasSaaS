@@ -173,7 +173,7 @@ const AddTransactionModal = ({
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md">
-            <div className="bg-white w-full max-w-md max-h-[92dvh] overflow-y-auto overscroll-contain rounded-[2rem] shadow-2xl p-4 sm:p-6 animate-in zoom-in-95 duration-200">
+            <div className="bg-white w-full max-w-md max-h-[92dvh] overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden overscroll-contain rounded-[2rem] shadow-2xl p-4 sm:p-6 animate-in zoom-in-95 duration-200">
                 <div className="flex justify-between items-center mb-3">
                     <h2 className="text-xl font-black text-slate-800 tracking-tighter">
                         {t('addTransaction')}

@@ -24,7 +24,7 @@ const SetGoalModal = ({
     }, []);
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md">
-            <div className="bg-white w-full max-w-sm max-h-[90dvh] overflow-y-auto rounded-[2.5rem] shadow-2xl p-5 sm:p-8 animate-in zoom-in-95 duration-200">
+            <div className="bg-white w-full max-w-sm max-h-[90dvh] overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden rounded-[2.5rem] shadow-2xl p-5 sm:p-8 animate-in zoom-in-95 duration-200">
                 <div className="flex justify-between items-center mb-8">
                     <h2 className="text-xl font-black text-slate-800 tracking-tighter">
                         {t('setGoal')}

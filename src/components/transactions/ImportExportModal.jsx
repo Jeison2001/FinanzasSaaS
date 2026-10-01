@@ -75,7 +75,7 @@ const ImportExportModal = ({ setShowModal, t, onImported }) => {
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md">
-            <div className="bg-white w-full max-w-lg max-h-[90dvh] overflow-y-auto rounded-[2.5rem] shadow-2xl p-5 sm:p-8">
+            <div className="bg-white w-full max-w-lg max-h-[90dvh] overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden rounded-[2.5rem] shadow-2xl p-5 sm:p-8">
                 <div className="flex justify-between items-center mb-6">
                     <h2 className="text-2xl font-black text-slate-800 tracking-tighter">
                         {t('importTitle')}
