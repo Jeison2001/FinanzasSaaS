@@ -134,8 +134,8 @@ const AddTransactionModal = ({
         }
     };
 
-    const inputCls = "w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-sm";
-    const selectCls = "w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-xs cursor-pointer hover:bg-slate-100 transition-colors";
+    const inputCls = "w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-sm";
+    const selectCls = "w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-xs cursor-pointer hover:bg-slate-100 transition-colors";
     const labelCls = "text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1";
     // Etiquetas con keys literales (rastreables por server/i18n-audit.mjs);
     // el VALUE sigue viniendo de constants.transactionTypes (única fuente).
@@ -159,9 +159,9 @@ const AddTransactionModal = ({
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md">
-            <div className="bg-white w-full max-w-md max-h-[90dvh] overflow-y-auto rounded-[2.5rem] shadow-2xl p-5 sm:p-8 animate-in zoom-in-95 duration-200">
-                <div className="flex justify-between items-center mb-8">
-                    <h2 className="text-2xl font-black text-slate-800 tracking-tighter">
+            <div className="bg-white w-full max-w-md max-h-[92dvh] overflow-y-auto overscroll-contain rounded-[2rem] shadow-2xl p-4 sm:p-6 animate-in zoom-in-95 duration-200">
+                <div className="flex justify-between items-center mb-3">
+                    <h2 className="text-xl font-black text-slate-800 tracking-tighter">
                         {t('addTransaction')}
                     </h2>
                     <button
@@ -172,10 +172,10 @@ const AddTransactionModal = ({
                     </button>
                 </div>
 
-                <form onSubmit={handleAddTransaction} className="space-y-5">
+                <form onSubmit={handleAddTransaction} className="space-y-3">
                     <div className="space-y-1">
                         <label className={labelCls}>{t('tipoMovimiento')}</label>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 p-1.5 bg-slate-100 rounded-2xl">
+                        <div className="grid grid-cols-3 gap-1.5 p-1 bg-slate-100 rounded-2xl">
                             {transactionTypes.map(({ value }) => (
                                 <button
                                     key={value}
@@ -183,7 +183,7 @@ const AddTransactionModal = ({
                                     onClick={() => handleTypeChange(value)}
                                     aria-pressed={formData.type === value}
                                     title={TYPE_LABELS[value]}
-                                    className={`py-2.5 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all cursor-pointer ${formData.type === value ? `bg-white ${TYPE_COLORS[value]} shadow-sm` : 'text-slate-400'}`}
+                                    className={`py-2 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all cursor-pointer ${formData.type === value ? `bg-white ${TYPE_COLORS[value]} shadow-sm` : 'text-slate-400'}`}
                                 >
                                     {TYPE_LABELS[value]}
                                 </button>
@@ -207,9 +207,11 @@ const AddTransactionModal = ({
                         />
                     </div>
 
-                    {/* Campos dinámicos según tipo: entidad(es) de referencia */}
+                    {/* Campos dinámicos según tipo: entidad(es) de referencia +
+                        recurrencia en grilla 2-col (el modal debe caber en móvil
+                        sin scroll interno — regresión testada en e2e). */}
                     {formData.type === 'transfer' ? (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-2 gap-3">
                             <div className="space-y-1">
                                 <label className={labelCls}>{t('cuentaOrigen')}</label>
                                 <select
@@ -234,12 +236,26 @@ const AddTransactionModal = ({
                                     {accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
                                 </select>
                             </div>
+                            <div className="space-y-1 col-span-2">
+                                <label className={labelCls}>{t('recurrence')}</label>
+                                <select
+                                    className={selectCls}
+                                    value={formData.recurrence || 'none'}
+                                    onChange={(e) => setFormData(prev => ({ ...prev, recurrence: e.target.value }))}
+                                >
+                                    <option value="none">{t('none')}</option>
+                                    <option value="daily">{t('daily')}</option>
+                                    <option value="weekly">{t('weekly')}</option>
+                                    <option value="monthly">{t('monthly')}</option>
+                                    <option value="yearly">{t('yearly')}</option>
+                                </select>
+                            </div>
                             {transferInvalid && formData.accountId && formData.transferAccountId && (
-                                <p className="text-xs font-bold text-rose-600 sm:col-span-2">{t('cuentasDistintas')}</p>
+                                <p className="text-xs font-bold text-rose-600 col-span-2">{t('cuentasDistintas')}</p>
                             )}
                         </div>
                     ) : (
-                        <>
+                        <div className="grid grid-cols-2 gap-3">
                             {(formData.type === 'income' || formData.type === 'expense' || formData.type === 'card_payment' || formData.type === 'loan_payment') && (
                                 <div className="space-y-1">
                                     <label className={labelCls}>
@@ -287,10 +303,26 @@ const AddTransactionModal = ({
                                     </select>
                                 </div>
                             )}
-                        </>
+                            <div className="space-y-1">
+                                <label className={labelCls}>
+                                    {t('recurrence')}
+                                </label>
+                                <select
+                                    className={selectCls}
+                                    value={formData.recurrence || 'none'}
+                                    onChange={(e) => setFormData(prev => ({ ...prev, recurrence: e.target.value }))}
+                                >
+                                    <option value="none">{t('none')}</option>
+                                    <option value="daily">{t('daily')}</option>
+                                    <option value="weekly">{t('weekly')}</option>
+                                    <option value="monthly">{t('monthly')}</option>
+                                    <option value="yearly">{t('yearly')}</option>
+                                </select>
+                            </div>
+                        </div>
                     )}
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-2 gap-3">
                         <div className="space-y-1">
                             <label className={labelCls}>
                                 {t('amount')} ({currency})
@@ -328,7 +360,7 @@ const AddTransactionModal = ({
                         )}
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-2 gap-3">
                         <div className="space-y-1">
                             <label className={labelCls}>
                                 {t('date')}
@@ -353,7 +385,7 @@ const AddTransactionModal = ({
                                 {t('status')}
                             </label>
                             <select
-                                className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none text-[10px] font-black uppercase tracking-widest cursor-pointer hover:bg-slate-100 transition-colors"
+                                className={selectCls}
                                 value={formData.status}
                                 onChange={(e) => {
                                     const val = e.target.value;
@@ -370,30 +402,10 @@ const AddTransactionModal = ({
                         </div>
                     </div>
 
-                    <div className="space-y-1">
-                        <label className={labelCls}>
-                            {t('recurrence')}
-                        </label>
-                        <select
-                            className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none text-[10px] font-black uppercase tracking-widest cursor-pointer hover:bg-slate-100 transition-colors"
-                            value={formData.recurrence || 'none'}
-                            onChange={(e) => {
-                                const val = e.target.value;
-                                setFormData(prev => ({ ...prev, recurrence: val }));
-                            }}
-                        >
-                            <option value="none">{t('none')}</option>
-                            <option value="daily">{t('daily')}</option>
-                            <option value="weekly">{t('weekly')}</option>
-                            <option value="monthly">{t('monthly')}</option>
-                            <option value="yearly">{t('yearly')}</option>
-                        </select>
-                    </div>
-
                     <button
                         type="submit"
                         disabled={transferInvalid}
-                        className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-black uppercase tracking-widest py-4 rounded-2xl transition-all shadow-xl shadow-indigo-100 mt-4 cursor-pointer"
+                        className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-black uppercase tracking-widest py-3.5 rounded-2xl transition-all shadow-xl shadow-indigo-100 cursor-pointer"
                     >
                         {t('save')}
                     </button>

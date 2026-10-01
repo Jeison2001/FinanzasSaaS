@@ -41,6 +41,7 @@ const Header = ({ lang, setLang, setShowAddModal, role, setForceClientView, save
 
                     <button
                         onClick={() => setShowAddModal(true)}
+                        aria-label={t('newTransaction')}
                         className="bg-white hover:bg-indigo-50 text-indigo-600 px-3 sm:px-4 py-2 rounded-xl flex items-center gap-2 transition-all shadow-md font-bold text-sm cursor-pointer"
                     >
                         <PlusCircle size={18} />

@@ -38,6 +38,10 @@ test.describe.serial('Feature Entidades: cuenta → ingreso → saldo → tarjet
     // browser has been closed" en beforeAll). Lanzamos el nuestro replicando el
     // canal/viewport/locale de playwright.config.js sin tocarlo.
     let browser;
+    // Token capturado justo tras el registro: la página compartida puede quedar
+    // con el contexto de ejecución roto al final del serial (localStorage
+    // denegado), y el test móvil necesita la sesión para su contexto dedicado.
+    let specToken = null;
 
     test.beforeAll(async () => {
         browser = await chromium.launch({ channel: 'msedge' });
@@ -69,6 +73,7 @@ test.describe.serial('Feature Entidades: cuenta → ingreso → saldo → tarjet
 
         // Login automático → header del dashboard
         await expect(page.getByText('Nueva Transacción')).toBeVisible();
+        specToken = await page.evaluate(() => localStorage.getItem('token'));
     });
 
     test('crear cuenta → fila en el panel con su saldo inicial', async () => {
@@ -346,29 +351,63 @@ test.describe.serial('Feature Entidades: cuenta → ingreso → saldo → tarjet
         expect(after.accounts.find(a => a.name === ORPHAN_ACCOUNT_NAME).balance).toBe(destino.balance + 100);
     });
 
-    test('responsive móvil 375px: sin scroll horizontal en los cuatro tabs', async () => {
+    test('responsive móvil 375px: tabs sin scroll horizontal y modal que cabe', async () => {
+        // Contexto móvil DEDICADO: el viewport nace en 375 y nunca se redimensiona
+        // (los resizes sobre la página compartida mataban el renderer de Edge).
+        // La sesión se transfiere inyectando el token antes de cada navegación.
+        // El token se toma de la página compartida vía evaluate; si su contexto
+        // de ejecución no lo permite, se recupera re-leyendo tras recargar.
+        let token = specToken;
+        if (!token) {
+            try {
+                token = await page.evaluate(() => localStorage.getItem('token'));
+            } catch {
+                await page.reload();
+                token = await page.evaluate(() => localStorage.getItem('token'));
+            }
+        }
+        expect(token).toBeTruthy();
+        const mobileCtx = await browser.newContext({ viewport: { width: 375, height: 720 } });
+        await mobileCtx.addInitScript((t) => {
+            localStorage.setItem('token', t);
+            localStorage.setItem('role', 'client');
+        }, token);
+        const mpage = await mobileCtx.newPage();
+        await mpage.goto('http://localhost:5173/');  // contexto manual: sin baseURL de la config
+        console.log('MOBILE-DEBUG url:', mpage.url(), '| token.len:', (await mpage.evaluate(() => (localStorage.getItem('token') || '').length)), '| title:', await mpage.title());
+        await expect(mpage.getByRole('button', { name: 'Nueva Transacción' })).toBeVisible();
+
         // El ask enumera CUATRO tabs (Historial, Presupuestos, Entidades, Informes
         // Visuales) aunque su titular diga "tres": se cubren los cuatro. Cada tab
         // espera su marcador propio visible antes de medir (los datos ya están
         // cargados; el swap de activeTab es estado React síncrono).
-        await page.setViewportSize({ width: 375, height: 720 });
-
         const tabs = [
-            { name: 'Historial y Planificación', ready: () => page.getByPlaceholder('Buscar...') },
-            { name: 'Presupuestos', ready: () => page.getByRole('button', { name: 'Guardar presupuestos' }) },
-            { name: 'Entidades', ready: () => page.getByRole('button', { name: 'Nueva Cuenta' }) },
+            { name: 'Historial y Planificación', ready: () => mpage.getByPlaceholder('Buscar...') },
+            { name: 'Presupuestos', ready: () => mpage.getByRole('button', { name: 'Guardar presupuestos' }) },
+            { name: 'Entidades', ready: () => mpage.getByRole('button', { name: 'Nueva Cuenta' }) },
             // 'Descargar PDF' NO sirve de marcador: su span es hidden sm:inline
             // (invisible a 375px) — se usa el heading de datos del informe.
-            { name: 'Informes Visuales', ready: () => page.getByText('Gastos por Categoría') },
+            { name: 'Informes Visuales', ready: () => mpage.getByText('Gastos por Categoría') },
         ];
         for (const { name, ready } of tabs) {
-            await page.getByRole('button', { name }).click();
+            await mpage.getByRole('button', { name }).click();
             await expect(ready()).toBeVisible();
-            const scrollWidth = await page.evaluate(() => document.documentElement.scrollWidth);
+            const scrollWidth = await mpage.evaluate(() => document.documentElement.scrollWidth);
             expect(scrollWidth).toBeLessThanOrEqual(375 + 2); // tolerancia 2px
         }
 
-        await page.setViewportSize({ width: 1280, height: 720 });
+        // Modal de transacción a 375px: regresión del reporte del usuario —
+        // desbordaba su max-h y exigía scroll interno para llegar a Guardar.
+        // Compactado: el card debe caber sin scroll en un teléfono estándar.
+        await mpage.getByRole('button', { name: 'Nueva Transacción' }).click();
+        await expect(mpage.getByRole('heading', { name: 'Añadir Transacción' })).toBeVisible();
+        const modalCard = mpage.locator('div.fixed.inset-0 > div').first();
+        const modalFits = await modalCard.evaluate((el) => el.scrollHeight <= el.clientHeight + 2);
+        expect(modalFits).toBe(true);
+        await expect(mpage.getByRole('button', { name: 'Guardar' })).toBeVisible();
+        // Sin cierre del contexto: el afterAll cierra el navegador, y el renderer
+        // de Edge a veces muere al desmontar el modal a 375px (artefacto de
+        // automatización — cuelga el close()). Las aserciones ya pasaron.
     });
 
     test.afterAll(async () => {
