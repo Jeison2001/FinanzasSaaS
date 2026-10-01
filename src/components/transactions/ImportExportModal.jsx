@@ -12,9 +12,14 @@ const ImportExportModal = ({ setShowModal, t, onImported }) => {
     // Bloquea el scroll de la página mientras el modal está abierto: sin esto,
     // el scrollbar del body queda visible al lado del modal (reporte del usuario).
     useEffect(() => {
-        const prev = document.body.style.overflow;
+        const prevHtml = document.documentElement.style.overflow;
+        const prevBody = document.body.style.overflow;
+        document.documentElement.style.overflow = 'hidden';
         document.body.style.overflow = 'hidden';
-        return () => { document.body.style.overflow = prev; };
+        return () => {
+            document.documentElement.style.overflow = prevHtml;
+            document.body.style.overflow = prevBody;
+        };
     }, []);
 
 

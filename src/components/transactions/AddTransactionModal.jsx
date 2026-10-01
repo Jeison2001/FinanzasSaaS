@@ -61,12 +61,18 @@ const AddTransactionModal = ({
         ...emptyRefs
     });
 
-    // Bloquea el scroll de la página mientras el modal está abierto: sin esto,
-    // el scrollbar del body queda visible al lado del modal (reporte del usuario).
+    // Bloquea el scroll del documento (html + body) mientras el modal está
+    // abierto: sin esto, el scrollbar de la ventana queda visible al lado del
+    // modal (reporte del usuario).
     useEffect(() => {
-        const prev = document.body.style.overflow;
+        const prevHtml = document.documentElement.style.overflow;
+        const prevBody = document.body.style.overflow;
+        document.documentElement.style.overflow = 'hidden';
         document.body.style.overflow = 'hidden';
-        return () => { document.body.style.overflow = prev; };
+        return () => {
+            document.documentElement.style.overflow = prevHtml;
+            document.body.style.overflow = prevBody;
+        };
     }, []);
 
     useEffect(() => {

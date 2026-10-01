@@ -10,6 +10,18 @@ const SetGoalModal = ({
     saveSettings,
     t
 }) => {
+    // Bloquea el scroll del documento mientras el modal está abierto: sin esto,
+    // el scrollbar del body queda visible al lado del modal (reporte del usuario).
+    useEffect(() => {
+        const prevHtml = document.documentElement.style.overflow;
+        const prevBody = document.body.style.overflow;
+        document.documentElement.style.overflow = 'hidden';
+        document.body.style.overflow = 'hidden';
+        return () => {
+            document.documentElement.style.overflow = prevHtml;
+            document.body.style.overflow = prevBody;
+        };
+    }, []);
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md">
             <div className="bg-white w-full max-w-sm max-h-[90dvh] overflow-y-auto rounded-[2.5rem] shadow-2xl p-5 sm:p-8 animate-in zoom-in-95 duration-200">
