@@ -42,7 +42,7 @@ const KPICards = ({ stats, lang, currency, t, period, onPeriodChange, onConfirmO
                         key={opt.value}
                         onClick={() => onPeriodChange(opt.value)}
                         className={`flex-1 sm:flex-none px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer ${
-                            period === opt.value ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-500 hover:bg-slate-50'
+                            period === opt.value ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-500 hover:bg-slate-50'
                         }`}
                     >
                         {t(opt.key)}
@@ -54,7 +54,7 @@ const KPICards = ({ stats, lang, currency, t, period, onPeriodChange, onConfirmO
                 <div className="bg-white p-3 md:p-5 rounded-2xl md:rounded-3xl shadow-sm border border-slate-200 hover:shadow-md transition-shadow">
 
                     <div className="flex justify-between items-start mb-1 md:mb-2">
-                        <div className="p-1.5 md:p-2 bg-indigo-600 text-white rounded-lg">
+                        <div className="p-1.5 md:p-2 bg-slate-950 text-white rounded-lg">
                             <Wallet size={14} className="md:hidden" />
                             <Wallet size={20} className="hidden md:block" />
                         </div>
@@ -101,17 +101,17 @@ const KPICards = ({ stats, lang, currency, t, period, onPeriodChange, onConfirmO
                 </div>
 
                 {/* Net Savings Card */}
-                <div className="bg-gradient-to-br from-indigo-600 to-indigo-500 border-0 p-3 md:p-5 rounded-2xl md:rounded-3xl shadow-md hover:shadow-lg transition-shadow">
+                <div className="bg-slate-950 border-0 p-3 md:p-5 rounded-2xl md:rounded-3xl shadow-md hover:shadow-lg transition-shadow">
                     <div className="flex justify-between items-start mb-1 md:mb-2">
                         <div className="p-1.5 md:p-2 bg-white/20 text-white rounded-lg">
                             <Sparkles size={14} className="md:hidden" />
                             <Sparkles size={20} className="hidden md:block" />
                         </div>
-                        <span className="hidden md:block text-[10px] font-black text-indigo-100 uppercase tracking-widest">
+                        <span className="hidden md:block text-[10px] font-black text-emerald-100 uppercase tracking-widest">
                             {t('netBalance')}
                         </span>
                     </div>
-                    <p className="text-[10px] font-black text-indigo-100 uppercase tracking-widest mb-0.5 md:hidden">{t('netBalance')}</p>
+                    <p className="text-[10px] font-black text-emerald-100 uppercase tracking-widest mb-0.5 md:hidden">{t('netBalance')}</p>
                     <p className={`text-sm md:text-2xl font-black tracking-tight leading-none ${netSavings >= 0 ? 'text-white' : 'text-rose-400'}`}>
                         {formatCurrency(netSavings, lang, currency)}
                     </p>

@@ -62,7 +62,7 @@ const BudgetsPanel = ({ lang, currency, t }) => {
         <div className="mt-6 space-y-6">
             <div className="flex flex-col md:flex-row justify-between items-center bg-white p-4 rounded-[2rem] border border-slate-200 shadow-sm gap-4">
                 <h2 className="text-xl font-black tracking-tight text-slate-800 md:ml-4 flex items-center gap-2">
-                    <PiggyBank size={22} className="text-indigo-600" />
+                    <PiggyBank size={22} className="text-emerald-600" />
                     {t('budgets')}
                 </h2>
                 <div className="flex flex-wrap items-center justify-center gap-2">
@@ -86,7 +86,7 @@ const BudgetsPanel = ({ lang, currency, t }) => {
                     </select>
                     <button
                         onClick={handleSave}
-                        className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2 rounded-xl flex items-center gap-2 transition-all shadow-md font-bold text-sm cursor-pointer"
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2 rounded-xl flex items-center gap-2 transition-all shadow-md font-bold text-sm cursor-pointer"
                     >
                         {savedMsg ? <Check size={16} className="text-emerald-400" /> : null}
                         <span>{savedMsg ? t('budgetSaved') : t('saveBudgets')}</span>
@@ -99,7 +99,7 @@ const BudgetsPanel = ({ lang, currency, t }) => {
 
                 {budgetsLoading ? (
                     <div className="flex items-center justify-center h-32">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600"></div>
                     </div>
                 ) : (
                     <div className="space-y-5">
@@ -148,7 +148,7 @@ const BudgetsPanel = ({ lang, currency, t }) => {
                                         placeholder={t('noBudgetSet')}
                                         value={draft[cat] !== undefined ? draft[cat] : ''}
                                         onChange={(e) => setDraft(prev => ({ ...prev, [cat]: e.target.value }))}
-                                        className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 text-xs font-bold"
+                                        className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 text-xs font-bold"
                                     />
                                 </div>
                             );
@@ -158,14 +158,14 @@ const BudgetsPanel = ({ lang, currency, t }) => {
             </div>
 
             {(totalBudget > 0 || totalSpent > 0) && (
-                <div className="bg-gradient-to-br from-indigo-600 to-indigo-500 text-white p-6 rounded-[2rem] shadow-xl">
+                <div className="bg-slate-950 text-white p-6 rounded-[2rem] shadow-xl">
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <p className="text-[10px] font-black text-indigo-100 uppercase tracking-widest mb-1">{t('budgetTotal')}</p>
+                            <p className="text-[10px] font-black text-emerald-100 uppercase tracking-widest mb-1">{t('budgetTotal')}</p>
                             <p className="text-2xl font-black">{formatCurrency(totalBudget, lang, currency)}</p>
                         </div>
                         <div>
-                            <p className="text-[10px] font-black text-indigo-100 uppercase tracking-widest mb-1">{t('budgetSpent')}</p>
+                            <p className="text-[10px] font-black text-emerald-100 uppercase tracking-widest mb-1">{t('budgetSpent')}</p>
                             <p className={`text-2xl font-black ${totalSpent > totalBudget ? 'text-rose-400' : 'text-emerald-400'}`}>
                                 {formatCurrency(totalSpent, lang, currency)}
                             </p>

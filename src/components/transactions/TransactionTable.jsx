@@ -114,7 +114,7 @@ const TransactionTable = ({
                         <button
                             onClick={loadMore}
                             disabled={loading}
-                            className="text-xs font-black uppercase tracking-widest text-slate-500 hover:text-indigo-600 transition-colors disabled:opacity-50"
+                            className="text-xs font-black uppercase tracking-widest text-slate-500 hover:text-emerald-600 transition-colors disabled:opacity-50"
                         >
                             {loading ? t('loading') || 'Loading...' : t('loadMore') || 'Load More'}
                         </button>
@@ -142,7 +142,7 @@ const TransactionTable = ({
                                     {formatDateI18n(item.date, lang)}
                                 </td>
                                 <td className="px-6 py-4">
-                                    <p className="text-sm font-bold text-slate-800 leading-none mb-1 cursor-pointer hover:text-indigo-600 transition-colors" onClick={() => onEdit(item)}>
+                                    <p className="text-sm font-bold text-slate-800 leading-none mb-1 cursor-pointer hover:text-emerald-600 transition-colors" onClick={() => onEdit(item)}>
                                         {item.description}
                                     </p>
                                     <p className="text-[10px] text-slate-400 font-black uppercase tracking-tighter">

@@ -50,15 +50,15 @@ const emptyAccountDraft = { name: '', initial_amount: '' };
 
 const Spinner = () => (
     <div className="flex items-center justify-center h-24">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600"></div>
     </div>
 );
 
 /** Fila de la live-info del formulario de préstamo. */
 const LiveRow = ({ label, value, accent }) => (
     <div className="flex items-center justify-between gap-4">
-        <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">{label}</span>
-        <span className={`text-sm font-black ${accent || 'text-indigo-700'}`}>{value}</span>
+        <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">{label}</span>
+        <span className={`text-sm font-black ${accent || 'text-emerald-700'}`}>{value}</span>
     </div>
 );
 
@@ -69,7 +69,7 @@ const RowActions = ({ onEdit, onDelete, t }) => (
             onClick={onEdit}
             title={t('editar')}
             aria-label={t('editar')}
-            className="bg-slate-100 hover:bg-indigo-100 hover:text-indigo-600 text-slate-500 p-2 rounded-xl transition-all cursor-pointer"
+            className="bg-slate-100 hover:bg-emerald-100 hover:text-emerald-600 text-slate-500 p-2 rounded-xl transition-all cursor-pointer"
         >
             <Pencil size={14} />
         </button>
@@ -276,14 +276,14 @@ const EntitiesPanel = ({ lang, currency, t, overview, overviewLoading, reloadOve
         }
     };
 
-    const inputCls = "w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 text-sm font-bold";
+    const inputCls = "w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 text-sm font-bold";
     const labelCls = "text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1";
-    const primaryBtnCls = "bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white px-5 py-2 rounded-xl flex items-center gap-2 transition-all shadow-md font-bold text-sm cursor-pointer";
+    const primaryBtnCls = "bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white px-5 py-2 rounded-xl flex items-center gap-2 transition-all shadow-md font-bold text-sm cursor-pointer";
     const secondaryBtnCls = "bg-slate-100 hover:bg-slate-200 text-slate-500 px-5 py-2 rounded-xl transition-all font-bold text-sm cursor-pointer";
-    const newBtnCls = "bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest transition-all shadow-md cursor-pointer shrink-0";
+    const newBtnCls = "bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest transition-all shadow-md cursor-pointer shrink-0";
 
     const summaryCards = [
-        { key: 'cuentas', icon: Wallet, iconCls: 'bg-indigo-600 text-white', value: overview?.accountsTotal ?? 0, negative: false },
+        { key: 'cuentas', icon: Wallet, iconCls: 'bg-emerald-600 text-white', value: overview?.accountsTotal ?? 0, negative: false },
         { key: 'tarjetas', icon: CreditCard, iconCls: 'bg-rose-50 text-rose-600', value: overview?.cardsUsed ?? 0, negative: true },
         { key: 'prestamos', icon: Landmark, iconCls: 'bg-amber-50 text-amber-600', value: overview?.loansRemaining ?? 0, negative: true }
     ];
@@ -293,7 +293,7 @@ const EntitiesPanel = ({ lang, currency, t, overview, overviewLoading, reloadOve
             {/* Cabecera */}
             <div className="flex flex-col md:flex-row justify-between md:items-center bg-white p-4 rounded-[2rem] border border-slate-200 shadow-sm gap-2">
                 <h2 className="text-xl font-black tracking-tight text-slate-800 md:ml-4 flex items-center gap-2">
-                    <Landmark size={22} className="text-indigo-600" />
+                    <Landmark size={22} className="text-emerald-600" />
                     {t('entidades')}
                 </h2>
                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest md:mr-4">{t('cuentasYDeudas')}</p>
@@ -317,13 +317,13 @@ const EntitiesPanel = ({ lang, currency, t, overview, overviewLoading, reloadOve
                 ))}
 
                 {/* Patrimonio Neto — tarjeta destacada con degradado indigo */}
-                <div className="bg-gradient-to-br from-indigo-600 to-indigo-500 border-0 p-5 rounded-3xl shadow-md hover:shadow-lg transition-shadow">
+                <div className="bg-slate-950 border-0 p-5 rounded-3xl shadow-md hover:shadow-lg transition-shadow">
                     <div className="flex justify-between items-start mb-2">
                         <div className="p-2 bg-white/20 text-white rounded-lg">
                             <Sparkles size={20} />
                         </div>
                     </div>
-                    <p className="text-[10px] font-black text-indigo-100 uppercase tracking-widest mb-0.5">{t('patrimonioNeto')}</p>
+                    <p className="text-[10px] font-black text-emerald-100 uppercase tracking-widest mb-0.5">{t('patrimonioNeto')}</p>
                     <p className={`text-2xl font-black tracking-tight leading-none ${(overview?.netWorth ?? 0) >= 0 ? 'text-white' : 'text-rose-400'}`}>
                         {formatCurrency(overview?.netWorth ?? 0, lang, currency)}
                     </p>
@@ -369,7 +369,7 @@ const EntitiesPanel = ({ lang, currency, t, overview, overviewLoading, reloadOve
             <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm space-y-5">
                 <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3">
                     <h3 className="text-sm font-black uppercase tracking-widest text-slate-500 flex items-center gap-2">
-                        <Wallet size={16} className="text-indigo-600" /> {t('cuentas')}
+                        <Wallet size={16} className="text-emerald-600" /> {t('cuentas')}
                     </h3>
                     <button onClick={() => openForm('account')} className={newBtnCls}>
                         <Plus size={14} /> {t('nuevaCuenta')}
@@ -545,14 +545,14 @@ const EntitiesPanel = ({ lang, currency, t, overview, overviewLoading, reloadOve
                             <button
                                 type="button"
                                 onClick={() => setLoanDraft(p => ({ ...p, mode: 'rate' }))}
-                                className={`flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all cursor-pointer ${loanDraft.mode === 'rate' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400'}`}
+                                className={`flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all cursor-pointer ${loanDraft.mode === 'rate' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-400'}`}
                             >
                                 {t('modoTasa')}
                             </button>
                             <button
                                 type="button"
                                 onClick={() => setLoanDraft(p => ({ ...p, mode: 'payment' }))}
-                                className={`flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all cursor-pointer ${loanDraft.mode === 'payment' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400'}`}
+                                className={`flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all cursor-pointer ${loanDraft.mode === 'payment' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-400'}`}
                             >
                                 {t('modoCuota')}
                             </button>
@@ -578,7 +578,7 @@ const EntitiesPanel = ({ lang, currency, t, overview, overviewLoading, reloadOve
 
                         {/* Live-info: replica el cálculo del server en unidades */}
                         {loanLive && (
-                            <div className="bg-indigo-50 border border-indigo-100 rounded-2xl p-4 space-y-1.5 max-w-md">
+                            <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-4 space-y-1.5 max-w-md">
                                 {loanLive.mode === 'rate' ? (
                                     <LiveRow label={t('cuotaEstimada')} value={formatCurrency(loanLive.payment, lang, currency)} />
                                 ) : (
@@ -619,7 +619,7 @@ const EntitiesPanel = ({ lang, currency, t, overview, overviewLoading, reloadOve
                                     <div className="flex items-center gap-3">
                                         <div className="flex-1 h-2.5 bg-slate-200/70 rounded-full overflow-hidden">
                                             <div
-                                                className={`h-full rounded-full transition-all duration-500 ${pct >= 100 ? 'bg-emerald-500' : 'bg-gradient-to-r from-indigo-600 to-indigo-400'}`}
+                                                className={`h-full rounded-full transition-all duration-500 ${pct >= 100 ? 'bg-emerald-500' : 'bg-gradient-to-r from-emerald-600 to-emerald-400'}`}
                                                 style={{ width: `${pct}%` }}
                                             ></div>
                                         </div>

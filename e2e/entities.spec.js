@@ -256,7 +256,7 @@ test.describe.serial('Feature Entidades: cuenta → ingreso → saldo → tarjet
         // Live-info ANTES de guardar: la tasa implícita estimada. El cliente
         // replica loan.utils en unidades → 35.07% para 10000 a 12×1000
         // (toFixed(2) usa '.' como separador decimal, no es locale-aware).
-        const liveInfo = form.locator('div.bg-indigo-50');
+        const liveInfo = form.locator('div', { hasText: 'Tasa implícita' }).last();
         await expect(liveInfo).toBeVisible();
         await expect(liveInfo.getByText('Tasa implícita')).toBeVisible();
         await expect(liveInfo.getByText(/35\.07%/)).toBeVisible();

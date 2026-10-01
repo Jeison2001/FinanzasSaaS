@@ -5,14 +5,14 @@ import { useAuth } from '../../hooks/useAuth';
 const Header = ({ lang, setLang, setShowAddModal, role, setForceClientView, saveSettings, t }) => {
     const { logout } = useAuth();
     return (
-        <header className="bg-gradient-to-br from-indigo-600 to-indigo-500 sticky top-0 z-30 text-white shadow-md pt-[env(safe-area-inset-top,0px)]">
+        <header className="bg-slate-950 sticky top-0 z-30 text-white shadow-md pt-[env(safe-area-inset-top,0px)]">
             <div className="max-w-6xl mx-auto pl-[max(1rem,env(safe-area-inset-left,1rem))] pr-[max(1rem,env(safe-area-inset-right,1rem))] h-16 flex items-center justify-between">
                 <div className="flex items-center gap-2 min-w-0">
-                    <div className="bg-white/15 border border-white/25 p-2 rounded-lg text-white shrink-0">
+                    <div className="bg-emerald-500/15 border border-emerald-400/30 p-2 rounded-lg text-emerald-400 shrink-0">
                         <BarChart3 size={20} />
                     </div>
                     <h1 className="text-lg sm:text-xl font-bold text-white tracking-tight">
-                        {t('title')} <span className="text-indigo-200">SaaS</span>
+                        {t('title')} <span className="text-emerald-500">SaaS</span>
                     </h1>
                 </div>
 
@@ -42,7 +42,7 @@ const Header = ({ lang, setLang, setShowAddModal, role, setForceClientView, save
                     <button
                         onClick={() => setShowAddModal(true)}
                         aria-label={t('newTransaction')}
-                        className="bg-white hover:bg-indigo-50 text-indigo-600 px-3 sm:px-4 py-2 rounded-xl flex items-center gap-2 transition-all shadow-md font-bold text-sm cursor-pointer"
+                        className="bg-white hover:bg-emerald-50 text-emerald-600 px-3 sm:px-4 py-2 rounded-xl flex items-center gap-2 transition-all shadow-md font-bold text-sm cursor-pointer"
                     >
                         <PlusCircle size={18} />
                         <span className="hidden sm:inline">{t('newTransaction')}</span>

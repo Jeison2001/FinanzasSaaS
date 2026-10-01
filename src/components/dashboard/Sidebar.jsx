@@ -6,7 +6,7 @@ const Sidebar = ({ stats, savingsGoal, transactions, lang, currency, setShowGoal
     return (
         <div className="space-y-6">
             {/* SAVINGS GOAL */}
-            <div className="bg-gradient-to-br from-indigo-600 to-indigo-500 text-white p-7 rounded-[2.5rem] shadow-xl relative overflow-hidden group">
+            <div className="bg-slate-950 text-white p-7 rounded-[2.5rem] shadow-xl relative overflow-hidden group">
                 <div className="relative z-10">
                     <div className="flex items-center justify-between mb-4">
                         <h3 className="font-black text-lg tracking-tight">{t('savingGoal')}</h3>
@@ -20,7 +20,7 @@ const Sidebar = ({ stats, savingsGoal, transactions, lang, currency, setShowGoal
 
                     <div className="w-full bg-white/20 rounded-full h-4 mb-8 p-1 backdrop-blur-sm">
                         <div
-                            className="bg-gradient-to-r from-indigo-300 to-indigo-100 h-full rounded-full transition-all duration-1000 ease-out shadow-[0_0_10px_rgba(165,180,252,0.7)]"
+                            className="bg-gradient-to-r from-emerald-500 to-emerald-300 h-full rounded-full transition-all duration-1000 ease-out shadow-[0_0_10px_rgba(16,185,129,0.5)]"
                             style={{ width: `${stats.goalPercent}%` }}
                         ></div>
                     </div>
@@ -32,13 +32,13 @@ const Sidebar = ({ stats, savingsGoal, transactions, lang, currency, setShowGoal
                         {t('viewDetails')}
                     </button>
                 </div>
-                <div className="absolute -right-10 -bottom-10 bg-indigo-300/40 rounded-full w-48 h-48 blur-2xl"></div>
+                <div className="absolute -right-10 -bottom-10 bg-emerald-500/20 rounded-full w-48 h-48 blur-2xl"></div>
             </div>
 
             {/* UPCOMING */}
             <div className="bg-white border border-slate-200 p-6 rounded-[2rem] shadow-sm">
                 <h3 className="font-black text-slate-800 mb-6 flex items-center gap-2 tracking-tighter uppercase text-xs">
-                    <ChevronRight size={16} className="text-indigo-600" />
+                    <ChevronRight size={16} className="text-emerald-600" />
                     {t('upcoming')}
                 </h3>
                 <div className="space-y-3">

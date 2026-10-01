@@ -61,6 +61,14 @@ const AddTransactionModal = ({
         ...emptyRefs
     });
 
+    // Bloquea el scroll de la página mientras el modal está abierto: sin esto,
+    // el scrollbar del body queda visible al lado del modal (reporte del usuario).
+    useEffect(() => {
+        const prev = document.body.style.overflow;
+        document.body.style.overflow = 'hidden';
+        return () => { document.body.style.overflow = prev; };
+    }, []);
+
     useEffect(() => {
         if (transactionToEdit) {
             // Las refs llegan en snake_case desde el listado SQL del server.
@@ -134,8 +142,8 @@ const AddTransactionModal = ({
         }
     };
 
-    const inputCls = "w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-sm";
-    const selectCls = "w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-xs cursor-pointer hover:bg-slate-100 transition-colors";
+    const inputCls = "w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-emerald-500 outline-none font-bold text-sm";
+    const selectCls = "w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-emerald-500 outline-none font-bold text-xs cursor-pointer hover:bg-slate-100 transition-colors";
     const labelCls = "text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1";
     // Etiquetas con keys literales (rastreables por server/i18n-audit.mjs);
     // el VALUE sigue viniendo de constants.transactionTypes (única fuente).
@@ -405,7 +413,7 @@ const AddTransactionModal = ({
                     <button
                         type="submit"
                         disabled={transferInvalid}
-                        className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-black uppercase tracking-widest py-3.5 rounded-2xl transition-all shadow-xl shadow-indigo-100 cursor-pointer"
+                        className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-black uppercase tracking-widest py-3.5 rounded-2xl transition-all shadow-xl shadow-emerald-100 cursor-pointer"
                     >
                         {t('save')}
                     </button>

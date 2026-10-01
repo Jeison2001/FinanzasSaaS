@@ -102,11 +102,11 @@ const AuthCard = () => {
     };
 
     return (
-        <div className="min-h-dvh bg-gradient-to-br from-slate-50 via-white to-indigo-50 flex items-center justify-center p-4 pt-[max(1rem,env(safe-area-inset-top,1rem))] pb-[max(1rem,env(safe-area-inset-bottom,1rem))] pl-[max(1rem,env(safe-area-inset-left,1rem))] pr-[max(1rem,env(safe-area-inset-right,1rem))]">
+        <div className="min-h-dvh bg-slate-50 flex items-center justify-center p-4 pt-[max(1rem,env(safe-area-inset-top,1rem))] pb-[max(1rem,env(safe-area-inset-bottom,1rem))] pl-[max(1rem,env(safe-area-inset-left,1rem))] pr-[max(1rem,env(safe-area-inset-right,1rem))]">
             <div className="bg-white max-w-sm w-full p-8 rounded-[2rem] shadow-xl">
                 {/* Logo */}
                 <div className="flex items-center justify-center gap-2 mb-8">
-                    <div className="bg-gradient-to-br from-indigo-600 to-indigo-500 p-2 rounded-xl">
+                    <div className="bg-slate-950 p-2 rounded-xl">
                         <svg width="20" height="20" viewBox="0 0 32 32" fill="none">
                             <rect x="8" y="8" width="4" height="16" rx="1" fill="#818cf8" />
                             <rect x="8" y="8" width="16" height="4" rx="1" fill="#818cf8" />
@@ -114,7 +114,7 @@ const AuthCard = () => {
                         </svg>
                     </div>
                     <span className="text-xl font-black text-slate-800 tracking-tight">
-                        {t('title')}<span className="text-indigo-400">SaaS</span>
+                        {t('title')}<span className="text-emerald-400">SaaS</span>
                     </span>
                 </div>
 
@@ -136,7 +136,7 @@ const AuthCard = () => {
                         <PasswordField label={t('authPassword')} value={password} onChange={setPassword} />
                         <div className="text-right">
                             <button type="button" onClick={() => switchView('forgot')}
-                                className="text-xs font-bold text-slate-400 hover:text-indigo-600 transition-colors cursor-pointer">
+                                className="text-xs font-bold text-slate-400 hover:text-emerald-600 transition-colors cursor-pointer">
                                 {t('authForgotLink')}
                             </button>
                         </div>
@@ -186,7 +186,7 @@ const AuthCard = () => {
 
 // ─── Sub-componentes reutilizables ────────────────────────────────────────────
 
-const inputCls = "w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm font-medium";
+const inputCls = "w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-emerald-500 outline-none text-sm font-medium";
 const labelCls = "text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1";
 
 const EmailField = ({ label, value, onChange }) => (
@@ -209,7 +209,7 @@ const CurrencyField = ({ value, onChange, t }) => (
         <select
             value={value}
             onChange={(e) => onChange(e.target.value)}
-            className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm font-bold cursor-pointer hover:bg-slate-100 transition-colors"
+            className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-emerald-500 outline-none text-sm font-bold cursor-pointer hover:bg-slate-100 transition-colors"
         >
             {worldCurrencies.map(c => (
                 <option key={c.code} value={c.code}>{c.code} — {c.name}</option>
@@ -221,14 +221,14 @@ const CurrencyField = ({ value, onChange, t }) => (
 
 const SubmitButton = ({ loading, label }) => (
     <button type="submit" disabled={loading}
-        className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white font-black uppercase tracking-widest py-4 rounded-2xl shadow-xl shadow-indigo-100 mt-2 transition-all cursor-pointer">
+        className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white font-black uppercase tracking-widest py-4 rounded-2xl shadow-xl shadow-emerald-100 mt-2 transition-all cursor-pointer">
         {loading ? '...' : label}
     </button>
 );
 
 const SwitchButton = ({ onClick, label }) => (
     <button type="button" onClick={onClick}
-        className="w-full text-slate-400 hover:text-indigo-600 text-xs font-bold pt-2 text-center cursor-pointer transition-colors">
+        className="w-full text-slate-400 hover:text-emerald-600 text-xs font-bold pt-2 text-center cursor-pointer transition-colors">
         {label}
     </button>
 );

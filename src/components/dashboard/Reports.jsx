@@ -159,7 +159,7 @@ const Reports = ({ refreshTrigger, lang, currency, t, onOpenImportExport }) => {
     if (loading) {
         return (
             <div className="bg-white rounded-[2rem] border border-slate-200 p-8 text-center mt-4 shadow-sm flex items-center justify-center h-64">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600 mx-auto"></div>
             </div>
         );
     }
@@ -212,7 +212,7 @@ const Reports = ({ refreshTrigger, lang, currency, t, onOpenImportExport }) => {
 
                     <button
                         onClick={applyFilters}
-                        className="p-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 rounded-xl transition-colors cursor-pointer"
+                        className="p-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-600 rounded-xl transition-colors cursor-pointer"
                         title={t('searchPlaceholder') || 'Apply Filters'}
                     >
                         <Search size={16} strokeWidth={2.5} />
@@ -226,14 +226,14 @@ const Reports = ({ refreshTrigger, lang, currency, t, onOpenImportExport }) => {
 
                     <button
                         onClick={downloadPDF}
-                        className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2 md:ml-2 rounded-xl flex items-center gap-2 transition-all shadow-md font-bold text-sm cursor-pointer"
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2 md:ml-2 rounded-xl flex items-center gap-2 transition-all shadow-md font-bold text-sm cursor-pointer"
                     >
                         <Download size={16} /> <span className="hidden sm:inline">{t('downloadPDF')}</span>
                     </button>
 
                     <button
                         onClick={onOpenImportExport}
-                        className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2 rounded-xl flex items-center gap-2 transition-all shadow-md font-bold text-sm cursor-pointer"
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2 rounded-xl flex items-center gap-2 transition-all shadow-md font-bold text-sm cursor-pointer"
                     >
                         <FileSpreadsheet size={16} /> <span className="hidden sm:inline">{t('importCSV')}</span>
                     </button>

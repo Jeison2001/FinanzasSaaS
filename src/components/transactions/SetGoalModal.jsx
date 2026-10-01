@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+
 import { X } from 'lucide-react';
 
 const SetGoalModal = ({
@@ -31,7 +32,7 @@ const SetGoalModal = ({
                         </label>
                         <input
                             type="number"
-                            className="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none text-2xl font-black tracking-tight"
+                            className="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-emerald-500 outline-none text-2xl font-black tracking-tight"
                             value={savingsGoal}
                             onChange={(e) => setSavingsGoal(parseFloat(e.target.value) || 0)}
                         />
@@ -44,7 +45,7 @@ const SetGoalModal = ({
                         }}
                         disabled={!(savingsGoal > 0)}
                         title={!(savingsGoal > 0) ? t('goalMustBePositive') : undefined}
-                        className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-black uppercase tracking-widest py-4 rounded-2xl transition-all shadow-xl shadow-indigo-100 cursor-pointer"
+                        className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-black uppercase tracking-widest py-4 rounded-2xl transition-all shadow-xl shadow-emerald-100 cursor-pointer"
                     >
                         {t('save')}
                     </button>

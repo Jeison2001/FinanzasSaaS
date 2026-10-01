@@ -18,7 +18,7 @@ const TransactionFilters = ({
         <div className="bg-white p-4 rounded-[2rem] border border-slate-200 shadow-sm space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-2">
                 <h2 className="text-lg font-black text-slate-800 flex items-center gap-2 tracking-tighter min-w-0">
-                    <PieChart size={20} className="text-indigo-600 shrink-0" />
+                    <PieChart size={20} className="text-emerald-600 shrink-0" />
                     {t('history')}
                 </h2>
 
@@ -28,14 +28,14 @@ const TransactionFilters = ({
                         <input
                             type="text"
                             placeholder={t('searchPlaceholder')}
-                            className="pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-xs w-40 max-w-full md:w-56 transition-all"
+                            className="pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-xs w-40 max-w-full md:w-56 transition-all"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                         />
                     </div>
                     <button
                         onClick={() => setShowFilters(!showFilters)}
-                        className={`p-2 rounded-xl border transition-all cursor-pointer ${showFilters ? 'bg-indigo-600 border-indigo-600 text-white' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+                        className={`p-2 rounded-xl border transition-all cursor-pointer ${showFilters ? 'bg-emerald-600 border-emerald-600 text-white' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}
                     >
                         <Filter size={16} />
                     </button>

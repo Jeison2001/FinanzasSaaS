@@ -5,7 +5,7 @@ const EmptyState = ({ setShowAddModal, t }) => {
     return (
         <div className="flex flex-col items-center justify-center p-12 text-center bg-white rounded-3xl border border-dashed border-slate-200 shadow-sm mt-6">
             <div className="bg-slate-50 p-6 rounded-full mb-6">
-                <Wallet2 size={48} className="text-indigo-400" />
+                <Wallet2 size={48} className="text-emerald-400" />
             </div>
 
             <h3 className="text-2xl font-black text-slate-800 tracking-tight mb-3">
@@ -18,7 +18,7 @@ const EmptyState = ({ setShowAddModal, t }) => {
 
             <button
                 onClick={() => setShowAddModal(true)}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-2xl flex items-center gap-3 transition-all shadow-lg shadow-indigo-200 font-bold cursor-pointer"
+                className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-2xl flex items-center gap-3 transition-all shadow-lg shadow-emerald-200 font-bold cursor-pointer"
             >
                 <PlusCircle size={20} />
                 {t('addFirstTransaction')}
